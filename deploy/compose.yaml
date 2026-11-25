@@ -1,0 +1,30 @@
+# tiller on one Linux docker host. deploy/install.sh writes the variables below into deploy/.env
+# and starts this; see README "Installing on a server".
+name: tiller
+services:
+  tiller:
+    image: ${TILLER_IMAGE:-codetiller/factory:dev}
+    build:
+      context: ..
+      dockerfile: images/factory/Dockerfile
+    init: true
+    restart: unless-stopped
+    # uid of the sandbox containers; the group is the one that owns the docker socket on the host
+    user: "1000:1000"
+    group_add:
+      - "${DOCKER_GID:?run deploy/install.sh}"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    # The working dir has the same path here and on the host: workspaces are mounted into
+    # sandbox containers by path, and it is the host's daemon that resolves it.
+    working_dir: ${TILLER_HOME:?run deploy/install.sh}
+    volumes:
+      - ${TILLER_HOME}:${TILLER_HOME}
+      # the factory starts containers on the host. This is root on the host: only the factory
+      # has it, never an agent, an install or a verification container.
+      - /var/run/docker.sock:/var/run/docker.sock
+    # local only unless told otherwise: put a TLS reverse proxy in front for a team
+    ports:
+      - "${TILLER_BIND:-127.0.0.1}:${TILLER_PORT:-4317}:4317"
+    command: ["ui", "--host", "0.0.0.0", "--url", "${TILLER_URL:-http://127.0.0.1:4317}"]
+    stop_grace_period: 30s

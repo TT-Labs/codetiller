@@ -1,0 +1,12 @@
+# The factory's working dir: database, repositories, workspaces, installed dependencies,
+# transcripts. Sandbox pods mount parts of it (sub-paths). ReadWriteOnce is enough because
+# sandbox pods are scheduled onto the factory's node; with ReadWriteMany storage they need not be.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tiller-home
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 50Gi

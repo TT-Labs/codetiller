@@ -1,0 +1,10 @@
+node_modules/
+dist/
+artifacts/
+.cache/
+tiller.db*
+.env
+*.log
+.DS_Store
+.claude/worktrees/
+CLAUDE.local.md

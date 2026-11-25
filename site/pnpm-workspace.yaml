@@ -1,0 +1,6 @@
+# The site is its own pnpm root (own lockfile): the factory's install and image never pull it in.
+allowBuilds:
+  sharp: true
+  "@tailwindcss/oxide": true
+  "@parcel/watcher": false
+  "@swc/core": false

@@ -1,0 +1,168 @@
+---
+title: Tasks
+description: Creating tasks, what the preflight decides, queuing runs, choosing a model, and the metrics the factory keeps.
+---
+
+A task is a piece of work for the agent on one repository. This page follows a task from creation to the point where a pull request exists; [Pull requests](/docs/pull-requests) continues from there. Everything here can also be done in the UI.
+
+## Create a task
+
+### From the command line
+
+```bash
+tiller task create --repo acme/shop \
+  --title "Reject empty product names" \
+  --body "POST /products accepts an empty name. Return 400 and add a test."
+```
+
+The task is created in state `IMPORTED` and gets an id such as `T-1`. Nothing runs yet.
+
+| Option | Meaning |
+| --- | --- |
+| `--repo <owner/name>` | The repository. It must be onboarded, or have a `.factory/factory.yaml`. |
+| `--title`, `--body`, `--body-file <file>` | What to do. Write it as you would for an engineer who has not seen the code. |
+| `--config <name>` | The agent config. Default `c0-vanilla`. |
+| `--ref <ref>` | The branch to start from. Default: the repository's default branch. |
+| `--model <id>` | Run on this model instead of the default. One of `factory.models`. |
+| `--enqueue` | Queue the first run right away. |
+| `--dataset <name>` | Use a sandbox profile from `datasets/<name>/profile.yaml` of the working directory instead of the repository's own. |
+
+### From GitHub issues
+
+Open issues that carry the repository's label (`tiller` by default, set at [onboarding](/docs/repositories)) are imported as tasks, once each. The worker polls for them; `tiller task import` does it now.
+
+Import never queues a run. An imported task waits in `IMPORTED` until a human queues it. Its pull request will say `Closes #N` for the issue it came from.
+
+Intake needs `TILLER_GITHUB_TOKEN` with `Issues: read`.
+
+## Queue a run
+
+```bash
+tiller task enqueue T-1
+tiller task enqueue T-1 "Use the validation helper in src/validate.ts"
+```
+
+Queuing is the human decision to spend a run on a task. The optional message goes to the agent: an answer to its question, feedback on its work, a direction. The worker picks up queued runs; `tiller ui` and `tiller daemon` host it, and `tiller task run` executes the queue in the foreground until it is empty.
+
+A run can be queued when the task is `IMPORTED`, `WAITING_FOR_HUMAN`, `REVIEW`, `PR_OPEN` or `FAILED`.
+
+| Option | Meaning |
+| --- | --- |
+| `--no-preflight` | Start the first run without the assessment. |
+| `--model <id>` | Run on this model from now on. `default` goes back to the default. |
+| `--out-of-order` | For a part of a split: start without waiting for the part before it. |
+
+## Preflight
+
+Before a task's first run, a read-only agent assesses it. It sees the repository mounted read-only and has no editing tools. It reports:
+
+- a summary of the work,
+- the files it expects to be created or changed,
+- the distinct domain concepts involved,
+- new dependencies and risks a reviewer must know about,
+- questions where a wrong guess would waste the implementation,
+- for a task over the limits, a split into parts that can each be merged on their own.
+
+The factory, not the agent, decides what happens next. It compares the estimate with its limits — by default **10 files and 3 concepts**, with a tolerance of 20 %, so twelve files against a limit of ten is not a reason to stop. A task that is too large, has blocking questions, or whose assessment failed stops at `WAITING_FOR_HUMAN` with the report on the task. Otherwise the run starts.
+
+A task is assessed once. When it stops, you have three choices:
+
+- **Queue it again**, with answers to the questions if there were any. It then runs regardless of the limits.
+- **Approve the split** with `tiller task split T-1`.
+- **Cancel** it.
+
+### Limits per repository
+
+Limits are looked up in this order, first match wins:
+
+1. `.factory/factory.yaml` in the repository, read from git at the task's base commit:
+   ```yaml
+   preflight:
+     max_files: 20
+   ```
+2. The repository's entry under `factory.projects` in `tiller.yaml`.
+3. `factory.preflight` in `tiller.yaml`.
+
+The keys are `enabled`, `max_files`, `max_concepts` and `tolerance`.
+
+### Splits
+
+`tiller task split T-1` turns the parts the preflight proposed into tasks of their own and cancels the original.
+
+Parts run in order. Each part waits for the one before it to be merged or cancelled, because it builds on that work. A part you queue early stays queued and starts by itself when its turn comes. `enqueue --out-of-order` starts one without waiting.
+
+## What a run does
+
+1. The task's workspace is prepared. A task starts from the default branch as it is when its first run starts.
+2. The agent works in its sandbox, with the task text, the skills and any human messages. It ends its run in one of two ways: with a summary of what it did, or with numbered questions.
+3. Questions put the task into `WAITING_FOR_HUMAN`. Answer by queuing a run with the answer as the message.
+4. A finished run is [verified](/docs/verification). A verified commit is pushed and a draft pull request is opened (`PR_OPEN`). Without a GitHub token, or when verification fails, the task goes to `REVIEW` and nothing is pushed.
+5. A run that errors or times out leaves the task `FAILED`. It can be queued again.
+
+Follow-up runs continue the agent's session, so the agent remembers what it did and why.
+
+Every run is bounded by the limits of its agent config: turns, time and budget. The budget is enforced by the model gateway, not by the agent. See [Trust boundary](/docs/trust-boundary#model-and-budget).
+
+## Look at a task
+
+```bash
+tiller task list
+tiller task show T-1               # timeline: human messages, agent questions and summaries, runs
+tiller task manifest <runId>       # what a run was made of
+tiller task manifest <runId> --check
+```
+
+The UI shows the same, plus each run's full conversation with tool calls paired with their results, the diff, and the verification verdict.
+
+`manifest --check` verifies that every input of a run is still there and unchanged, and exits with code 1 when something drifted.
+
+## Choose the model
+
+The model of a run is, in this order: the task's own choice, the factory default, the `model` of the task's agent config.
+
+```bash
+tiller task model                        # the default, and the models on offer
+tiller task model claude-opus-5-5        # set the default; `none` = each task's config decides
+tiller task model T-1 claude-opus-5-5    # one task, from its next run; `default` = no own choice
+```
+
+The models on offer are the list `factory.models` in `tiller.yaml`. The config still supplies the agent, the skills and the limits; the model that actually ran is what the run records. A follow-up run on another model continues the same session.
+
+## Close a task
+
+A merged pull request completes its task and a closed one cancels it; the worker notices both. By hand:
+
+```bash
+tiller task complete T-1
+tiller task cancel T-1
+```
+
+## Metrics
+
+```bash
+tiller task metrics
+```
+
+The factory reports, over all tasks and per repository, config and model:
+
+- a funnel: created, started, stopped by preflight, agent ran, delivered (verified), pull request opened, accepted;
+- the first-pass rate: the share of delivered tasks that needed a single run and no human message;
+- human interventions per task. Only messages a human wrote count, not the factory's own messages to the agent;
+- cost per delivered task and total cost.
+
+### Experiments
+
+Tasks you run to try the factory itself would distort these figures. Mark them:
+
+```bash
+tiller task experiment T-1 T-2
+tiller task experiment T-1 --off
+```
+
+Tasks marked as experiments appear in no figure of the metrics.
+
+## Limits
+
+- One worker process executes runs, a few at a time. There is no pool of workers across machines.
+- Tasks come from GitHub issues or the command line and UI. Jira and other trackers are not connected.
+- A task belongs to one repository.

@@ -1,0 +1,57 @@
+# The registry proxy: the only thing a dependency-install pod can reach. Read-only, no credentials.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tiller-registry
+  labels: &labels
+    app.kubernetes.io/name: tiller-registry
+spec:
+  # stateless
+  replicas: 1
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: tiller-registry
+          # the script ships in the factory image; it has no dependencies beyond node
+          image: codetiller/factory
+          imagePullPolicy: IfNotPresent
+          command: ["node", "/opt/tiller/images/gateway/registry.mjs"]
+          env:
+            - name: PORT
+              value: "8081"
+          ports:
+            - name: http
+              containerPort: 8081
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tiller-registry
+spec:
+  selector:
+    app.kubernetes.io/name: tiller-registry
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http

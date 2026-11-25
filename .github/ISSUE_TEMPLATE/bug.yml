@@ -1,0 +1,32 @@
+name: Bug
+description: Something does not work as the docs say
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Output
+      description: The command and its output, or the task's timeline. Remove tokens and private code.
+      render: text
+  - type: input
+    attributes:
+      label: Version
+      description: Commit of codetiller.
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Deployment
+      options: [Docker, Kubernetes, From source]
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: tiller doctor
+      description: Output of `tiller doctor`.
+      render: text

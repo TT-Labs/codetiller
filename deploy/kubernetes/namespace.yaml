@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tiller
+  labels:
+    # The cluster itself refuses a privileged pod in this namespace, whoever asks for it: the
+    # factory's right to create pods is then no way to anything more than a sandbox pod.
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest

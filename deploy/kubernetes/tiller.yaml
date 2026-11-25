@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tiller
+  labels: &labels
+    app.kubernetes.io/name: tiller
+spec:
+  # one factory: one worker, one writer of the database. Recreate: the old one lets go of the
+  # volume before the new one starts.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      serviceAccountName: tiller
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        # uid of every sandbox pod: a workspace one of them writes, the other reads
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: tiller
+          image: codetiller/factory
+          imagePullPolicy: IfNotPresent
+          # --url: the address people open the UI at (an ingress with TLS, or a port-forward)
+          args: ["ui", "--host", "0.0.0.0", "--url", "http://127.0.0.1:4317"]
+          workingDir: /var/lib/tiller
+          env:
+            - name: TILLER_SANDBOX
+              value: kubernetes
+            - name: TILLER_CLAIM
+              value: tiller-home
+            # the sandbox image as the cluster can pull it (images/base)
+            - name: TILLER_BASE_IMAGE
+              value: codetiller/base:dev
+            - name: TILLER_GATEWAY_URL
+              value: http://tiller-gateway:8080
+            - name: TILLER_REGISTRY_URL
+              value: http://tiller-registry:8081
+            # the model key is not here: the gateway holds it
+            - name: TILLER_GATEWAY_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef: { name: tiller-secrets, key: TILLER_GATEWAY_ADMIN_TOKEN }
+            - name: TILLER_GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef: { name: tiller-secrets, key: TILLER_GITHUB_TOKEN, optional: true }
+          ports:
+            - name: http
+              containerPort: 4317
+          readinessProbe:
+            tcpSocket: { port: http }
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { memory: 2Gi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - name: home
+              mountPath: /var/lib/tiller
+      volumes:
+        - name: home
+          persistentVolumeClaim:
+            claimName: tiller-home
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tiller
+spec:
+  selector:
+    app.kubernetes.io/name: tiller
+  ports:
+    - name: http
+      port: 4317
+      targetPort: http

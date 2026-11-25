@@ -1,0 +1,18 @@
+# The build context of images/factory/Dockerfile is the repository root: nothing of a working
+# dir (secrets, the database, repositories, transcripts) may enter it.
+.env
+**/.env
+!.env.example
+.cache
+artifacts
+tiller.db*
+tiller.yaml
+.git
+.claude
+**/node_modules
+**/dist
+*.log
+datasets
+evals
+skills
+site

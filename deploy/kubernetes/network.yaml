@@ -1,0 +1,129 @@
+# Who may talk to whom. The cluster's network plugin must enforce NetworkPolicy (Calico, Cilium,
+# k3s do; plain flannel does not). The factory does not take that on trust: every sandbox pod
+# first tries an address these rules forbid, and runs nothing while it answers.
+
+# every sandbox pod: nothing in, nothing out ...
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-closed
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tiller-sandbox
+  policyTypes: [Ingress, Egress]
+---
+# ... except: an agent reaches the model gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-agents
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tiller-sandbox
+      tiller-network: tiller-agents
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tiller-gateway
+      ports:
+        - { protocol: TCP, port: 8080 }
+---
+# ... and a dependency install reaches the registry proxy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-install
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tiller-sandbox
+      tiller-network: tiller-install
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tiller-registry
+      ports:
+        - { protocol: TCP, port: 8081 }
+---
+# the gateway: asked by agents and by the factory; out to the model API (and DNS to find it)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gateway
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tiller-gateway
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tiller-sandbox
+              tiller-network: tiller-agents
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tiller
+      ports:
+        - { protocol: TCP, port: 8080 }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    # the internet, not the cluster's or the site's private networks
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
+      ports:
+        - { protocol: TCP, port: 443 }
+---
+# the registry proxy: asked by installs; out to the registries
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: registry
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tiller-registry
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tiller-sandbox
+              tiller-network: tiller-install
+      ports:
+        - { protocol: TCP, port: 8081 }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    # the internet, not the cluster's or the site's private networks
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
+      ports:
+        - { protocol: TCP, port: 443 }

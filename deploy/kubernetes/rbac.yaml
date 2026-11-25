@@ -1,0 +1,27 @@
+# The factory's whole reach into the cluster: pods of its own namespace. Sandbox pods get no
+# service account token at all.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tiller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tiller
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [create, get, list, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tiller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tiller
+subjects:
+  - kind: ServiceAccount
+    name: tiller

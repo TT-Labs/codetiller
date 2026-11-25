@@ -1,0 +1,128 @@
+---
+title: Install on a Linux server
+description: One Linux machine with Docker runs the factory as a container, with an install script that is safe to run again.
+---
+
+This installation puts the factory on one Linux machine. The factory itself runs as a container and starts the sandbox containers on the same Docker daemon. Nothing else is installed on the machine.
+
+## Requirements
+
+- A Linux machine with Docker, `docker compose` v2 and git.
+- A machine of its own. The factory's container holds the Docker socket, which is equal to root on that host. See [What the machine is trusted with](#what-the-machine-is-trusted-with).
+- An Anthropic API key and a GitHub token, as described in the [quickstart](/docs/quickstart#before-you-start).
+- Disk for repositories, workspaces, dependency volumes and transcripts. `tiller doctor` warns under 10 GB free; the sandbox image alone is a few gigabytes.
+
+## Install
+
+```bash
+git clone https://github.com/TT-Labs/codetiller && cd codetiller
+deploy/install.sh
+```
+
+The script takes its settings from the environment:
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `TILLER_HOME` | `/var/lib/tiller` | The working directory on the host. Must be an absolute path. |
+| `TILLER_PORT` | `4317` | The port on the host. |
+| `TILLER_URL` | `http://127.0.0.1:<port>` | The address people open the UI at. |
+| `TILLER_BIND` | `127.0.0.1` | The address the port is published on. |
+
+For example:
+
+```bash
+TILLER_HOME=/srv/tiller TILLER_URL=https://tiller.example.com deploy/install.sh
+```
+
+What the script does, in order:
+
+1. Builds the factory image from `images/factory`.
+2. Creates the working directory, owned by uid 1000, with an empty `.env` (mode 600).
+3. Writes its settings to `deploy/.env` and starts the factory with `deploy/compose.yaml`.
+4. Runs `tiller setup` inside the container: builds the sandbox image and runs `tiller doctor`.
+
+It does everything through the Docker daemon and installs nothing else on the machine. Running it again is safe: that is also how you [upgrade](#upgrade).
+
+## Add the credentials
+
+The script created `.env` in the working directory (`/var/lib/tiller/.env` by default) with two empty entries. Fill them in:
+
+```bash
+ANTHROPIC_API_KEY=...
+TILLER_GITHUB_TOKEN=...
+```
+
+Then restart the factory so it reads them:
+
+```bash
+docker compose -f deploy/compose.yaml restart
+```
+
+Edit the file in place so it stays owned by uid 1000 with mode 600.
+
+## Check, onboard, open
+
+```bash
+docker compose -f deploy/compose.yaml exec tiller tiller doctor
+docker compose -f deploy/compose.yaml exec tiller tiller audit
+docker compose -f deploy/compose.yaml exec tiller tiller repo add acme/shop
+docker compose -f deploy/compose.yaml logs tiller | grep 'tiller ui'
+```
+
+- `tiller doctor` must end with `ready`. Every failed check names its fix.
+- `tiller audit` probes the trust boundary from inside the containers. Run it on every new host, because Docker networking differs between hosts. See [Operations](/docs/operations#audit).
+- `tiller repo add` onboards a repository. See [Add a repository](/docs/repositories).
+- The last command prints the link to the UI. The link carries the API token, so treat it like a password.
+
+## Access for a team
+
+The port is published on `127.0.0.1` only. To let a team reach the UI:
+
+1. Put a reverse proxy with TLS in front of the port.
+2. Pass the public address as `TILLER_URL` when you run `install.sh`. The server answers only to the `Host` values it knows: the loopback names and the one address it was told.
+3. Share the link with the token with the people who should have access.
+
+<Callout type="warn" title="One token for everybody">
+
+Until sign-in through GitHub exists, the API token is the only access control, and everybody who has it can do everything: read transcripts and diffs, queue runs, change settings. Keep the UI on a private network or behind your proxy's own authentication.
+
+</Callout>
+
+## The working directory
+
+Everything of an installation lives in `TILLER_HOME`:
+
+| Path | Content |
+| --- | --- |
+| `.env` | The secrets, mode 600. |
+| `tiller.db` | The database (SQLite). |
+| `artifacts/` | Transcripts, diffs and manifests of runs. |
+| `.cache/` | Repositories, task workspaces, the UI token. |
+| `tiller.yaml`, `configs/`, `prompts/` | Optional. A file here replaces the one that ships with the image. |
+
+The directory has the same path inside the factory's container and on the host. That is required: workspaces are mounted into sandbox containers by path, and it is the host's Docker daemon that resolves the path. It belongs to uid 1000, the user of the factory and of every sandbox container, so both can write what the other made.
+
+Back up this directory to back up the installation.
+
+## What the machine is trusted with
+
+- The factory's container holds the Docker socket and therefore controls the host. The factory is trusted; nothing it starts gets the socket.
+- The factory container itself runs as uid 1000 without capabilities.
+- Git talks to GitHub with the factory's token, sent as a header for `github.com` only. Whatever git credentials the machine has are not used.
+
+## Upgrade
+
+```bash
+git pull
+deploy/install.sh
+```
+
+Running the script again rebuilds the image and restarts the factory; runs in flight are recorded as failed and can be queued again. The database is migrated when the new factory opens it, after a copy is put next to it. Details and how to go back: [Operations](/docs/operations#upgrades-and-the-database).
+
+## Limits
+
+- There are no published images. The script builds them on the host, which takes a few minutes.
+- Sign-in and roles do not exist; access is by the API token.
+- Backups are yours to do, apart from the copy made before a database migration.
+- Verified on an arm64 Linux host with a regular Docker daemon. x86_64 hosts, rootless Docker and SELinux-enforcing hosts have not been tried.
+- One factory per working directory. Nothing stops a second one from being started on the same directory, and it must not be.

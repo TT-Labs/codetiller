@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+/* semantic palette: components use these names only, never raw colours */
+:root {
+  color-scheme: light;
+  --canvas: #fafafa;
+  --surface: #ffffff;
+  --subtle: #f4f4f5;
+  --hover: #f0f0f2;
+  --line: #e4e4e7;
+  --line-strong: #d4d4d8;
+  --fg: #18181b;
+  --fg-muted: #52525b;
+  --fg-subtle: #6b6b74;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-fg: #ffffff;
+  --accent-text: #4338ca;
+  --accent-soft: #eef0fe;
+  --accent-line: #c7cbfa;
+  --success: #15803d;
+  --success-soft: #ecfdf3;
+  --success-line: #b5e8c7;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --danger-line: #f9c9c4;
+  --warning: #a15c07;
+  --warning-soft: #fffaeb;
+  --warning-line: #f5dca0;
+  --code: #f7f7f8;
+  --diff-add: #e6f6ec;
+  --diff-del: #fdecea;
+  --diff-hunk: #eef0fe;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --canvas: #0c0c0e;
+    --surface: #141417;
+    --subtle: #1b1b1f;
+    --hover: #202025;
+    --line: #2a2a30;
+    --line-strong: #3a3a42;
+    --fg: #ededf0;
+    --fg-muted: #b0b0b8;
+    --fg-subtle: #8c8c96;
+    --accent: #5850ec;
+    --accent-hover: #6a63f0;
+    --accent-fg: #ffffff;
+    --accent-text: #a5b0fc;
+    --accent-soft: #1e1f3d;
+    --accent-line: #3b3d78;
+    --success: #4ade80;
+    --success-soft: #0f2a1a;
+    --success-line: #1f5133;
+    --danger: #ff8a80;
+    --danger-soft: #34140f;
+    --danger-line: #6a2a22;
+    --warning: #fbbf24;
+    --warning-soft: #2e2208;
+    --warning-line: #5c4512;
+    --code: #101013;
+    --diff-add: #11291b;
+    --diff-del: #331614;
+    --diff-hunk: #1b1c38;
+  }
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-hover: var(--hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-line: var(--success-line);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-line: var(--warning-line);
+  --color-code: var(--code);
+  --color-diff-add: var(--diff-add);
+  --color-diff-del: var(--diff-del);
+  --color-diff-hunk: var(--diff-hunk);
+}
+
+@theme {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --text-13: 0.8125rem;
+  --text-13--line-height: 1.25rem;
+  --text-11: 0.6875rem;
+  --text-11--line-height: 1rem;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-canvas font-sans text-sm text-fg;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--accent-line);
+  }
+  button:not(:disabled),
+  summary,
+  [role="tab"] {
+    cursor: pointer;
+  }
+  a {
+    border-radius: 0.125rem;
+  }
+  input[type="checkbox"] {
+    accent-color: var(--accent);
+  }
+}

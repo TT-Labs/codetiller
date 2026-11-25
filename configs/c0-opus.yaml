@@ -1,0 +1,3 @@
+name: c0-opus
+extends: c0-vanilla
+model: claude-opus-5-5

@@ -1,0 +1,64 @@
+# The model gateway: the only thing an agent pod can reach, and the only holder of the model key.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tiller-gateway
+  labels: &labels
+    app.kubernetes.io/name: tiller-gateway
+spec:
+  # one gateway: the runs it has open (budgets, spend) are in its memory
+  replicas: 1
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: tiller-gateway
+          # the script ships in the factory image; it has no dependencies beyond node
+          image: codetiller/factory
+          imagePullPolicy: IfNotPresent
+          command: ["node", "/opt/tiller/images/gateway/gateway.mjs"]
+          env:
+            - name: PORT
+              value: "8080"
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef: { name: tiller-secrets, key: ANTHROPIC_API_KEY }
+            # with it the factory opens and closes runs over the network
+            - name: TILLER_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef: { name: tiller-secrets, key: TILLER_GATEWAY_ADMIN_TOKEN }
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tiller-gateway
+spec:
+  selector:
+    app.kubernetes.io/name: tiller-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

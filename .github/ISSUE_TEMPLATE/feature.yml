@@ -1,0 +1,14 @@
+name: Feature
+description: Something codetiller should do
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Problem
+      description: What you are trying to do and what stands in the way.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposal
+      description: What you would expect codetiller to do. Optional.
