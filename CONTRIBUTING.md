@@ -23,6 +23,8 @@ The site (`site/`) is its own pnpm root: `cd site && pnpm install && pnpm dev`.
   never decides whether work is done.
 - The agent is untrusted. It never sees credentials or hidden tests, and verification runs in a fresh
   container. A change that moves this boundary needs a probe in `tiller audit`.
+- `packages/core/src/index.ts` is the package's public surface: named exports only, added when another
+  package needs one.
 - `packages/core/src/store/schema.ts` is generated from `schema.sql`; a test fails when they differ.
 - The docs describe the product: a changed command, flag or limit changes its page in
   `site/content/docs` in the same pull request.

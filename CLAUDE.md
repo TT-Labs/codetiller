@@ -7,3 +7,4 @@
 - `store/schema.ts` is generated from `schema.sql` — keep in sync (test enforces).
 - `site/` = codetiller.ai (landing + docs, Next.js, own pnpm root). Docs (`site/content/docs`) describe the product: a changed command, flag or limit changes its docs page in the same commit.
 - The repository root is not a working dir. What ships is under `defaults/`; a working dir (`tiller.yaml`, `tiller.db`, `.cache/`, `artifacts/`, its own `configs/` `prompts/` `skills/`) overrides it file by file.
+- `packages/core/src/index.ts` lists what other packages may import, by name. Inside `core`, import by path; add a name to the index only when another package needs it.
