@@ -1,5 +1,5 @@
 import { parse, stringify } from 'yaml'
-import { type RepoProfile, RepoProfileSchema } from '../dataset/task.js'
+import { type RepoProfile, RepoProfileSchema } from '../profile/profile.js'
 import { REPO_FACTORY_FILE } from './preflight.js'
 
 /**

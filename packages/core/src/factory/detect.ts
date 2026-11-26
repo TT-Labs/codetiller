@@ -1,4 +1,4 @@
-import { type RepoProfile, RepoProfileSchema } from '../dataset/task.js'
+import { type RepoProfile, RepoProfileSchema } from '../profile/profile.js'
 
 /**
  * Onboarding: propose a sandbox profile for a repository from what is in it, so a team

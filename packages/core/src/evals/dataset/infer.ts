@@ -1,9 +1,9 @@
-import { ensureDeps } from '../sandbox/deps.js'
-import type { Sandbox } from '../sandbox/sandbox.js'
-import { runTests, type TestRun } from '../verify/tests.js'
-import type { GitWorkspaces } from '../workspace/git.js'
+import type { RepoProfile } from '../../profile/profile.js'
+import { ensureDeps } from '../../sandbox/deps.js'
+import type { Sandbox } from '../../sandbox/sandbox.js'
+import { runTests, type TestRun } from '../../verify/tests.js'
+import type { GitWorkspaces } from '../../workspace/git.js'
 import type { Draft } from './mine.js'
-import type { RepoProfile } from './task.js'
 
 export interface InferResult {
   id: string

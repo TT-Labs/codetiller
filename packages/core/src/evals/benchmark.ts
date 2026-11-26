@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import type { Config } from './config/config.js'
-import { configHash } from './config/config.js'
-import { renderContext, type Skill } from './context/context.js'
-import type { RepoProfile, Task } from './dataset/task.js'
+import type { Config } from '../config/config.js'
+import { configHash } from '../config/config.js'
+import { renderContext, type Skill } from '../context/context.js'
+import type { RepoProfile } from '../profile/profile.js'
+import type { Task } from './dataset/task.js'
 import { type RunDeps, runTask } from './run.js'
 
 export interface BenchmarkSpec {

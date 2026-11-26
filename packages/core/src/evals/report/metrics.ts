@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { Config } from '../config/config.js'
-import type { RunRecord, Store } from '../store/store.js'
-import { processMetrics } from '../transcript/metrics.js'
-import { missingCommands } from '../transcript/missing.js'
-import { parseTranscript } from '../transcript/transcript.js'
+import type { Config } from '../../config/config.js'
+import type { RunRecord, Store } from '../../store/store.js'
+import { processMetrics } from '../../transcript/metrics.js'
+import { missingCommands } from '../../transcript/missing.js'
+import { parseTranscript } from '../../transcript/transcript.js'
 import type { RunRow } from './compare.js'
 
 /**

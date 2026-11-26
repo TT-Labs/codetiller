@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import Database from 'better-sqlite3'
 import type { Config } from '../config/config.js'
-import type { Task } from '../dataset/task.js'
+import type { Task } from '../evals/dataset/task.js'
 import type { CheckResult } from '../score/score.js'
 import { sha256 } from '../util/hash.js'
 

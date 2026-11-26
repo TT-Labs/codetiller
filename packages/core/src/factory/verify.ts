@@ -1,6 +1,6 @@
 import { mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, sep } from 'node:path'
-import type { RepoProfile } from '../dataset/task.js'
+import type { RepoProfile } from '../profile/profile.js'
 import { ensureDeps } from '../sandbox/deps.js'
 import type { Sandbox } from '../sandbox/sandbox.js'
 import { type CheckRun, runCheck, runTests, type TestRun } from '../verify/tests.js'

@@ -16,7 +16,7 @@ import {
   resolveSkills,
 } from '../context/resolve.js'
 import { contextFileFor, loadSkill } from '../context/skills.js'
-import { type RepoProfile, RepoProfileSchema } from '../dataset/task.js'
+import { type RepoProfile, RepoProfileSchema } from '../profile/profile.js'
 import { ensureDeps } from '../sandbox/deps.js'
 import {
   type GatewayUsage,

@@ -12,7 +12,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
-import { RepoProfileSchema } from '../dataset/task.js'
+import { RepoProfileSchema } from '../profile/profile.js'
 import type { Sandbox } from '../sandbox/sandbox.js'
 import { TaskRepo } from './repo.js'
 import {

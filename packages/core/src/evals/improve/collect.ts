@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import type { RepoProfile } from '../../profile/profile.js'
+import { ensureDeps } from '../../sandbox/deps.js'
+import type { Sandbox } from '../../sandbox/sandbox.js'
+import { runTests } from '../../verify/tests.js'
+import { applyPatch, type GitWorkspaces, git } from '../../workspace/git.js'
 import { isTestFile } from '../dataset/mine.js'
-import type { RepoProfile, Task } from '../dataset/task.js'
-import { ensureDeps } from '../sandbox/deps.js'
-import type { Sandbox } from '../sandbox/sandbox.js'
-import { runTests } from '../verify/tests.js'
-import { applyPatch, type GitWorkspaces, git } from '../workspace/git.js'
+import type { Task } from '../dataset/task.js'
 import type { FailureEvidence } from './improve.js'
 
 const lastResultText = (transcript: string) => {

@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { OFFLINE_PRELUDE } from '../agents/claude-code.js'
-import type { RepoProfile, Suite } from '../dataset/task.js'
+import type { RepoProfile, Suite } from '../profile/profile.js'
 import type { DepsMount } from '../sandbox/deps.js'
 import type { ExecResult, Sandbox } from '../sandbox/sandbox.js'
 import { parseGoTestJson } from './gotest.js'

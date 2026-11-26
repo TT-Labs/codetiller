@@ -62,7 +62,7 @@ Details: [Docker](site/content/docs/en/install-docker.mdx),
 ## Layout
 
 ```text
-packages/core     engine: factory (tasks, runs, pull requests), sandbox, verification, store, evals
+packages/core     engine: factory/ (tasks, runs, pull requests), sandbox/, verify/, store/, evals/ (benchmarks)
 packages/cli      the `tiller` CLI
 packages/server   HTTP API (Hono) over the store and run artifacts
 packages/web      dashboard (React + Vite)

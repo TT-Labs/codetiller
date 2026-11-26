@@ -1,8 +1,9 @@
-import { ensureDeps } from '../sandbox/deps.js'
-import type { Sandbox } from '../sandbox/sandbox.js'
-import { runTests, type TestRun } from '../verify/tests.js'
-import type { GitWorkspaces } from '../workspace/git.js'
-import type { RepoProfile, Task } from './task.js'
+import type { RepoProfile } from '../../profile/profile.js'
+import { ensureDeps } from '../../sandbox/deps.js'
+import type { Sandbox } from '../../sandbox/sandbox.js'
+import { runTests, type TestRun } from '../../verify/tests.js'
+import type { GitWorkspaces } from '../../workspace/git.js'
+import type { Task } from './task.js'
 
 export interface ValidationResult {
   task: string

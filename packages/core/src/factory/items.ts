@@ -1,4 +1,4 @@
-import type { RepoProfile } from '../dataset/task.js'
+import type { RepoProfile } from '../profile/profile.js'
 import type { Store } from '../store/store.js'
 import type { CiCheck, CiStatus } from './forge.js'
 import type { Actor, WorkEvent, WorkEventKind, WorkItem, WorkRun, WorkState } from './model.js'

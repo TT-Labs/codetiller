@@ -1,6 +1,6 @@
 import { access, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { RepoProfile, Toolchain } from '../dataset/task.js'
+import type { RepoProfile, Toolchain } from '../profile/profile.js'
 import { sha256 } from '../util/hash.js'
 import type { Sandbox } from './sandbox.js'
 

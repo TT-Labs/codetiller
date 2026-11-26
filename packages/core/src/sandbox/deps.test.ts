@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
-import { RepoProfileSchema } from '../dataset/task.js'
+import { RepoProfileSchema } from '../profile/profile.js'
 import { ensureDeps } from './deps.js'
 import type { ExecRequest, Sandbox } from './sandbox.js'
 
