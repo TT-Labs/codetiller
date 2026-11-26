@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import Database from 'better-sqlite3'
 import { expect, it } from 'vitest'
-import { BASE_VERSION, type Migration, migrate, schemaVersion } from './migrate.js'
+import { BASE_VERSION, MIGRATIONS, type Migration, migrate, schemaVersion } from './migrate.js'
 
 const STEPS: Migration[] = [
   { name: 'note on a repository', up: 'ALTER TABLE repos ADD COLUMN note TEXT' },
@@ -61,4 +61,19 @@ it('a database of a newer tiller is refused', () => {
   expect(() => migrate(db, 'tiller.db', [])).toThrow(
     'tiller.db has schema version 7, this tiller knows 1',
   )
+})
+
+it('the released migrations run on a database from before versions began', () => {
+  const db = new Database(':memory:')
+  migrate(db, ':memory:', [])
+  db.pragma('user_version = 0')
+  db.prepare(
+    "INSERT INTO repos (repo, config, added_at) VALUES ('a/b', 'c0-vanilla', 't'), ('a/c', 'c0-opus', 't'), ('a/d', 'mine', 't')",
+  ).run()
+  expect(migrate(db, ':memory:').to).toBe(BASE_VERSION + MIGRATIONS.length)
+  expect(db.prepare('SELECT config FROM repos ORDER BY repo').pluck().all()).toEqual([
+    'default',
+    'opus',
+    'mine',
+  ])
 })

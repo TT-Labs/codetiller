@@ -1,0 +1,6 @@
+name: default
+harness: claude-code
+model: claude-sonnet-5-5
+skills: []
+prompt_template: prompts/default.md
+limits: { max_turns: 60, timeout_s: 1200, budget_usd: 5 }

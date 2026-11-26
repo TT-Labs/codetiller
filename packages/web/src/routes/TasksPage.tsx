@@ -213,7 +213,7 @@ function NewTaskForm() {
               </Select>
             </Field>
             <Field label="Agent config">
-              <Select name="config" required defaultValue="c0-vanilla">
+              <Select name="config" required defaultValue="default">
                 {(o?.configs ?? []).map((c) => (
                   <option key={c}>{c}</option>
                 ))}

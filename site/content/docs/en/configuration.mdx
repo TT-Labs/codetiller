@@ -38,7 +38,7 @@ factory:
   projects:
     - repo: acme/shop
       profile: shop          # datasets/shop/profile.yaml
-      config: c0-vanilla     # configs/c0-vanilla.yaml
+      config: default     # configs/default.yaml
       label: tiller          # issues with this label are imported
       preflight: { max_files: 20 }
 
@@ -133,10 +133,10 @@ With it an agent holds your model key and can reach the internet. Never set it o
 
 ## Agent configs
 
-An agent config is a YAML file in `configs/`. A task runs with one; `c0-vanilla` is the default and ships with the factory.
+An agent config is a YAML file in `configs/`. A task runs with one; `default` is the default and ships with the factory.
 
 ```yaml
-name: c0-vanilla
+name: default
 harness: claude-code
 model: claude-sonnet-5-5
 skills: []
@@ -158,8 +158,8 @@ limits: { max_turns: 60, timeout_s: 1200, budget_usd: 5 }
 A config can build on another with `extends`. Only what differs is written; limits merge key by key:
 
 ```yaml
-name: c0-opus
-extends: c0-vanilla
+name: opus
+extends: default
 model: claude-opus-5-5
 ```
 
@@ -168,12 +168,12 @@ model: claude-opus-5-5
 Every config has a content hash over the fully resolved config (after `extends`) and the text of its prompt template. The name is not part of it. Runs record the hash, so two runs are comparable when their hashes match, whatever the files were called at the time.
 
 ```bash
-tiller config add configs/c1-shop.yaml     # resolve it, print its hash
+tiller config add configs/shop-onboarding.yaml     # resolve it, print its hash
 ```
 
 ### Which config a task uses
 
-A task created with `tiller task create` uses the config named with `--config`, `c0-vanilla` by default. A task imported from an issue uses the config set for its repository at onboarding (`tiller repo add --config`).
+A task created with `tiller task create` uses the config named with `--config`, `default` by default. A task imported from an issue uses the config set for its repository at onboarding (`tiller repo add --config`).
 
 ## Limits
 

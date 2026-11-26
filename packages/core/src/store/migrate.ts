@@ -18,7 +18,17 @@ export interface Migration {
  * version `i + 1` to `i + 2`. `schema.sql` always describes the result of all of them, so a new
  * database is created at the latest version and runs none.
  */
-export const MIGRATIONS: Migration[] = []
+export const MIGRATIONS: Migration[] = [
+  {
+    name: 'agent configs renamed: c0-vanilla is default, c0-opus is opus',
+    up: `
+      UPDATE work_items SET config = 'default' WHERE config = 'c0-vanilla';
+      UPDATE work_items SET config = 'opus' WHERE config = 'c0-opus';
+      UPDATE repos SET config = 'default' WHERE config = 'c0-vanilla';
+      UPDATE repos SET config = 'opus' WHERE config = 'c0-opus';
+    `,
+  },
+]
 
 /** Version 1 is the schema as it was when versions began; every database before that is at it. */
 export const BASE_VERSION = 1

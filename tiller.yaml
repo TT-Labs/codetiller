@@ -42,5 +42,5 @@ factory:
   models: [claude-sonnet-5-5, claude-opus-5-5, claude-haiku-5-5]
   # Repositories are added with `tiller repo add <owner/name>`. An entry here is the older way,
   # for a repository whose sandbox profile lives in this working dir (datasets/<profile>/profile.yaml):
-  #   - { repo: acme/shop, profile: shop, config: c0-vanilla, label: tiller }
+  #   - { repo: acme/shop, profile: shop, config: default, label: tiller }
   projects: []

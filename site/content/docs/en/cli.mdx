@@ -54,7 +54,7 @@ Options of `tiller audit`:
 | --- | --- | --- |
 | `--image <image>` | the sandbox base image | The image that is probed. |
 | `--profile <name>` | | Probe the image of the sandbox profile `datasets/<name>` instead. |
-| `--config <name>` | `c0-vanilla` | The agent config the audited run is opened with. |
+| `--config <name>` | `default` | The agent config the audited run is opened with. |
 | `--port <port>` | `4317` | Where the factory's API listens. |
 
 ## Repositories
@@ -69,7 +69,7 @@ Options of `tiller repo add`:
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `--config <name>` | `c0-vanilla` | The agent config of its tasks. |
+| `--config <name>` | `default` | The agent config of its tasks. |
 | `--label <label>` | `tiller` | Issues with this label are imported. `none`: no intake. |
 | `--no-check` | | Do not install and run the tests. |
 
@@ -96,7 +96,7 @@ Options of `tiller task create`:
 | `--title <title>` | required | The task's title. |
 | `--body <text>` | | The description. |
 | `--body-file <file>` | | Read the description from a file. |
-| `--config <name>` | `c0-vanilla` | The agent config. |
+| `--config <name>` | `default` | The agent config. |
 | `--ref <ref>` | the default branch | The branch to start from. |
 | `--model <id>` | | Run on this model instead of the default. One of `factory.models`. |
 | `--enqueue` | | Queue the first run right away. |
@@ -204,7 +204,7 @@ Options of `tiller skill generate`:
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `--config <name>` | `c0-vanilla` | The agent and model that write the skill. |
+| `--config <name>` | `default` | The agent and model that write the skill. |
 | `--prompt <file>` | `prompts/onboarding.md` | The prompt for writing it. |
 
 See [Evals](/docs/evals).
@@ -226,7 +226,3 @@ See [Evals](/docs/evals).
 | `0` | Done. |
 | `1` | An error, or a failed check: `doctor`, `audit`, `task manifest --check`, a sync or import with errors. |
 | `2` | A negative answer that is not an error: `repo add` when the profile does not run, `gate` when the verdict is to keep the baseline. |
-
-## Not implemented
-
-`tiller review`, `tiller runs` and `tiller show` exist as names and print that they are not implemented yet.

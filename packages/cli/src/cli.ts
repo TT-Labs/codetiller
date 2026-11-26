@@ -97,11 +97,6 @@ const DEFAULTS = fileURLToPath(new URL('../../../', import.meta.url))
 const own = (...rel: string[]) =>
   existsSync(resolve(...rel)) ? resolve(...rel) : resolve(DEFAULTS, ...rel)
 
-const todo = (name: string) => () => {
-  console.error(`tiller ${name}: not implemented yet`)
-  process.exitCode = 1
-}
-
 const loadProfile = async (dir: string) =>
   RepoProfileSchema.parse(parse(await readFile(resolve(dir, 'profile.yaml'), 'utf8')))
 
@@ -582,7 +577,7 @@ program
   .requiredOption('--dataset <name>')
   .requiredOption('--at <commit>', 'older than every base_commit in the dataset')
   .requiredOption('--name <name>', 'skill name, e.g. hono-onboarding')
-  .option('--config <name>', 'harness/model used to generate', 'c0-vanilla')
+  .option('--config <name>', 'harness/model used to generate', 'default')
   .option('--prompt <file>', '', 'prompts/onboarding.md')
   .action(
     async (opts: { dataset: string; at: string; name: string; config: string; prompt: string }) => {
@@ -1127,16 +1122,6 @@ program
     },
   )
 program
-  .command('review')
-  .requiredOption('--benchmark <name>')
-  .option('--sample <n>', '', '30')
-  .action(todo('review'))
-program
-  .command('runs')
-  .option('--benchmark <name>')
-  .option('--outcome <outcome>')
-  .action(todo('runs'))
-program
   .command('ui')
   .description('local factory UI: tasks, inbox, run conversations, evals (http://127.0.0.1:<port>)')
   .option('--port <port>', '', '4317')
@@ -1365,7 +1350,7 @@ program
   )
   .option('--image <image>', 'image that is probed', DEFAULT_IMAGE)
   .option('--profile <name>', 'probe the image of this sandbox profile (datasets/<name>) instead')
-  .option('--config <name>', '', 'c0-vanilla')
+  .option('--config <name>', '', 'default')
   .option('--port <port>', 'where the factory UI/API listens', '4317')
   .action(async (opts: { image: string; profile?: string; config: string; port: string }) => {
     const key = process.env.ANTHROPIC_API_KEY ?? ''
@@ -1477,7 +1462,7 @@ repoCmd
   .description(
     'onboard a repository: take its .factory/factory.yaml or propose a sandbox profile from what is in it, install its dependencies and run its tests once; exit 2 when the profile does not run',
   )
-  .option('--config <name>', 'agent config of its tasks (configs/<name>.yaml)', 'c0-vanilla')
+  .option('--config <name>', 'agent config of its tasks (configs/<name>.yaml)', 'default')
   .option('--label <label>', 'issues with this label are imported (`none`: no intake)', 'tiller')
   .option('--no-check', 'do not install and run the tests')
   .action(async (repo: string, opts: { config: string; label: string; check: boolean }) => {
@@ -1531,7 +1516,7 @@ task
     "a sandbox profile of this checkout (datasets/<name>/profile.yaml); default: the repository's own .factory/factory.yaml, or what `tiller repo add` proposed",
     '',
   )
-  .option('--config <name>', 'configs/<name>.yaml', 'c0-vanilla')
+  .option('--config <name>', 'configs/<name>.yaml', 'default')
   .option('--ref <ref>', 'branch to start from (default: remote default branch)')
   .option('--model <id>', 'run on this model instead of the default (one of factory.models)')
   .option('--enqueue', 'queue the first run right away')
@@ -1878,6 +1863,5 @@ for (const [name, fn] of [
     store.close()
   })
 }
-program.command('show <runId>').action(todo('show'))
 
 await program.parseAsync()

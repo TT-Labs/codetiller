@@ -71,7 +71,7 @@ Labels are frozen before an experiment. They are never derived from the runs bei
 ## Run a benchmark
 
 ```bash
-tiller benchmark --dataset shop --config c0-vanilla --repeats 3
+tiller benchmark --dataset shop --config default --repeats 3
 ```
 
 | Option | Default | Meaning |
@@ -96,8 +96,8 @@ A benchmark is tasks × repeats agent runs. `--budget` is a hard cap on starting
 ## Compare two benchmarks
 
 ```bash
-tiller compare c0-vanilla c1-shop
-tiller compare c0-vanilla c1-shop --split holdout
+tiller compare default shop-onboarding
+tiller compare default shop-onboarding --split holdout
 ```
 
 The arguments are benchmark names (the latest with that name) or ids. The comparison is paired per task: the same task under both configs.
@@ -123,7 +123,7 @@ A small dataset with few repeats can only see large effects. It is better to kno
 ## The gate
 
 ```bash
-tiller gate c0-vanilla c1-shop --out evidence.md
+tiller gate default shop-onboarding --out evidence.md
 ```
 
 `gate` applies a fixed rule to a comparison and prints the verdict, its reason and every delta as markdown — the evidence that belongs in the pull request of a skill or config change. It exits with code 2 when the verdict is to keep the baseline.
@@ -138,7 +138,7 @@ The candidate is promoted when one of these holds:
 ### A fixed reference
 
 ```bash
-tiller gate c1-shop c2-shop --reference c0-vanilla
+tiller gate shop-onboarding shop-learned --reference default
 ```
 
 A chain of promotions, each "not detectably worse" than the one before, can add up to a loss none of them could see. `--reference` also holds the candidate against a fixed benchmark — the config from before any promotion.
@@ -148,7 +148,7 @@ The rule the factory follows for itself: **skills change only through a pull req
 ## Learn from failures
 
 ```bash
-tiller improve --benchmark c0-vanilla --dataset shop --skill shop-learned
+tiller improve --benchmark default --dataset shop --skill shop-learned
 ```
 
 `improve` reads the failed runs of a benchmark's train split, groups them into labelled clusters and proposes a learned skill from them. The proposal is a draft for a human to review. It then goes through the gate like any other skill.

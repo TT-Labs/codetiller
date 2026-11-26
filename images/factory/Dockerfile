@@ -34,7 +34,7 @@ COPY --from=build /opt/tiller /opt/tiller
 COPY images/gateway /opt/tiller/images/gateway
 COPY images/base /opt/tiller/images/base
 COPY prompts /opt/tiller/prompts
-COPY configs/c0-vanilla.yaml configs/c0-opus.yaml /opt/tiller/configs/
+COPY configs/default.yaml configs/opus.yaml /opt/tiller/configs/
 RUN chmod +x /opt/tiller/packages/cli/dist/cli.js \
   && ln -s /opt/tiller/packages/cli/dist/cli.js /usr/local/bin/tiller
 ENV NODE_ENV=production
