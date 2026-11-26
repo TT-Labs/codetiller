@@ -88,7 +88,7 @@ export interface FactoryDeps {
   /** working dir holding datasets/, configs/, skills/, prompts/ */
   root: string
   /**
-   * What ships with the factory: `configs/` and `prompts/factory/` are read from here when the
+   * What ships with the factory: `configs/`, `prompts/factory/` and `skills/` are read from here when the
    * working dir has no file of that name, so an installation starts with an empty one and keeps
    * only what it changed.
    */
@@ -1176,7 +1176,10 @@ export class Factory {
    */
   private async skillsFor(item: WorkItem, config: Config, repo: TaskRepo) {
     return resolveSkills({
-      skillsDir: join(this.deps.root, 'skills'),
+      skillsDir: [
+        join(this.deps.root, 'skills'),
+        ...(this.deps.defaults ? [join(this.deps.defaults, 'skills')] : []),
+      ],
       builtin: this.deps.skills ?? [],
       repo: (await repo.files(item.base_commit, REPO_SKILLS_DIR)).filter((f) =>
         f.path.endsWith('.md'),

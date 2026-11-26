@@ -14,11 +14,11 @@ Rules:
 Finish your final message with exactly one status line:
 
 `TILLER: DONE` — above it a short summary for the reviewer:
-  **Summary** what changed and where (a few bullets), **Evidence** which tests/commands you ran and
-  their result, **Risk** anything a reviewer must look at (breaking changes, blast radius).
+**Summary** what changed and where (a few bullets), **Evidence** which tests/commands you ran and
+their result, **Risk** anything a reviewer must look at (breaking changes, blast radius).
 
 `TILLER: NEEDS_HUMAN` — above it numbered questions, each with the options you see and your
-  recommended answer, phrased so that replying "yes" accepts your recommendation. Say what you
-  already tried.
+recommended answer, phrased so that replying "yes" accepts your recommendation. Say what you
+already tried.
 
 {{issue}}

@@ -323,7 +323,7 @@ function fixtureRoot() {
   mkdirSync(join(root, 'prompts', 'factory'), { recursive: true })
   // the real prompts: what the factory sends is what is tested
   for (const name of ['preflight.md', 'review.md']) {
-    const prompt = new URL(`../../../../prompts/factory/${name}`, import.meta.url)
+    const prompt = new URL(`../../../../defaults/prompts/factory/${name}`, import.meta.url)
     writeFileSync(join(root, 'prompts', 'factory', name), readFileSync(prompt, 'utf8'))
   }
   return root

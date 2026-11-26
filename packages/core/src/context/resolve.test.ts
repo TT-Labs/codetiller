@@ -56,3 +56,15 @@ it('a missing factory skill is an error, not a silently thinner context', async 
     resolveSkills({ skillsDir: skillsDir({}), builtin: ['nope@1'], repo: [], config: [] }),
   ).rejects.toThrow()
 })
+
+it('of several skill dirs the first that has the file wins: the working dir before the shipped ones', async () => {
+  const mine = skillsDir({ 'a@1': 'mine' })
+  const shipped = skillsDir({ 'a@1': 'shipped', 'b@1': 'only shipped' })
+  const skills = await resolveSkills({
+    skillsDir: [mine, shipped],
+    builtin: ['a@1', 'b@1'],
+    repo: [],
+    config: [],
+  })
+  expect(skills.map((s) => s.body)).toEqual(['mine', 'only shipped'])
+})

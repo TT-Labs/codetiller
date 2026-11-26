@@ -2,7 +2,7 @@
 
 ## mattpocock/skills
 
-`skills/repro-first` is derived from `skills/engineering/diagnosing-bugs` in
+`defaults/skills/repro-first` is derived from `skills/engineering/diagnosing-bugs` in
 https://github.com/mattpocock/skills (condensed and adapted for sandboxed agents).
 
 MIT License

@@ -87,15 +87,21 @@ try {
   process.loadEnvFile('.env')
 } catch {}
 
+/** Where tiller is installed (the checkout, or the image's install dir): `images/`, `defaults/`. */
+const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
+
 /**
- * What ships with tiller (the checkout, or the image's install dir): default configs and prompts,
- * the Dockerfile of the sandbox base image. The working dir holds what an installation changed.
+ * What ships with tiller: default configs, prompts and skills. The working dir holds what an
+ * installation changed or added.
  */
-const DEFAULTS = fileURLToPath(new URL('../../../', import.meta.url))
+const DEFAULTS = resolve(ROOT, 'defaults')
 
 /** A file of the working dir, or the one of that name tiller ships with. */
 const own = (...rel: string[]) =>
   existsSync(resolve(...rel)) ? resolve(...rel) : resolve(DEFAULTS, ...rel)
+
+/** Where a skill `name@N` is looked for: the working dir first. */
+const SKILL_DIRS = [resolve('skills'), resolve(DEFAULTS, 'skills')]
 
 const loadProfile = async (dir: string) =>
   RepoProfileSchema.parse(parse(await readFile(resolve(dir, 'profile.yaml'), 'utf8')))
@@ -173,7 +179,7 @@ function modelGateway(key: string): ModelGateway | undefined {
   }
   return new DockerGateway({
     key,
-    script: fileURLToPath(new URL('../../../images/gateway/gateway.mjs', import.meta.url)),
+    script: resolve(ROOT, 'images', 'gateway', 'gateway.mjs'),
   })
 }
 
@@ -233,7 +239,7 @@ const workerName = () => createHash('sha256').update(resolve('.')).digest('hex')
 
 const registryProxy = () =>
   new DockerRegistryProxy({
-    script: fileURLToPath(new URL('../../../images/gateway/registry.mjs', import.meta.url)),
+    script: resolve(ROOT, 'images', 'gateway', 'registry.mjs'),
   })
 
 function stringList(v: unknown, what: string): string[] {
@@ -605,9 +611,9 @@ program
           commit: (await git(cache, 'rev-parse', opts.at)).trim(),
           name: opts.name,
           description: `${repo} conventions, structure, testing (generated, no hand edits)`,
-          prompt: await readFile(resolve(opts.prompt), 'utf8'),
+          prompt: await readFile(own(opts.prompt), 'utf8'),
           profile,
-          config: await loadConfig(resolve('configs', `${opts.config}.yaml`)),
+          config: await loadConfig(own('configs', `${opts.config}.yaml`)),
           skillsDir: resolve('skills'),
           artifactsDir: resolve('artifacts'),
         },
@@ -631,7 +637,7 @@ program
   .action(async (file: string) => {
     const path = resolve(file)
     const config = await loadConfig(path)
-    const prompt = await readFile(resolve(config.prompt_template), 'utf8')
+    const prompt = await readFile(own(config.prompt_template), 'utf8')
     console.log(`${configHash(config, prompt)}  ${config.name}`)
   })
 
@@ -651,9 +657,9 @@ program
         parse(await readFile(resolve(dir, 'profile.yaml'), 'utf8')),
       )
       const task = await loadTask(resolve(dir, 'tasks', `${opts.task}.yaml`))
-      const config = await loadConfig(resolve('configs', `${opts.config}.yaml`))
-      const skills = await Promise.all(config.skills.map((s) => loadSkill(resolve('skills'), s)))
-      const promptTemplate = await readFile(resolve(config.prompt_template), 'utf8')
+      const config = await loadConfig(own('configs', `${opts.config}.yaml`))
+      const skills = await Promise.all(config.skills.map((s) => loadSkill(SKILL_DIRS, s)))
+      const promptTemplate = await readFile(own(config.prompt_template), 'utf8')
       const store = new Store(resolve('tiller.db'), resolve('artifacts'))
       try {
         const {
@@ -736,9 +742,9 @@ program
         const ids = new Set(opts.only.split(','))
         tasks = tasks.filter((t) => ids.has(t.id))
       }
-      const config = await loadConfig(resolve('configs', `${opts.config}.yaml`))
-      const promptTemplate = await readFile(resolve(config.prompt_template), 'utf8')
-      const skills = await Promise.all(config.skills.map((s) => loadSkill(resolve('skills'), s)))
+      const config = await loadConfig(own('configs', `${opts.config}.yaml`))
+      const promptTemplate = await readFile(own(config.prompt_template), 'utf8')
+      const skills = await Promise.all(config.skills.map((s) => loadSkill(SKILL_DIRS, s)))
       const name = opts.name ?? config.name
       const repeats = Number(opts.repeats)
       console.log(`TILLER BENCHMARK  ${name}`)
@@ -1018,7 +1024,7 @@ program
         const bm = store.findBenchmark(opts.benchmark)
         if (!bm) throw new Error(`benchmark not found: ${opts.benchmark}`)
         const skillRefs = store.benchmarkSkills(bm.id)
-        const skills = await Promise.all(skillRefs.map((s) => loadSkill(resolve('skills'), s)))
+        const skills = await Promise.all(skillRefs.map((s) => loadSkill(SKILL_DIRS, s)))
         const current = skills.map((s) => `## Skill: ${s.name}\n${s.body}`).join('\n\n')
         const failed = store.failedRuns(bm.id).filter((r) => trainIds.has(r.task_id))
         console.log(
@@ -1329,7 +1335,7 @@ program
     else {
       console.log(`building ${DEFAULT_IMAGE} (Node, Go, Python and the agent CLI: a few GB)`)
       const code = await new Promise<number | null>((done, fail) =>
-        spawn('docker', ['build', '-t', DEFAULT_IMAGE, resolve(DEFAULTS, 'images', 'base')], {
+        spawn('docker', ['build', '-t', DEFAULT_IMAGE, resolve(ROOT, 'images', 'base')], {
           stdio: 'inherit',
         })
           .on('error', fail)

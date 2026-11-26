@@ -11,7 +11,7 @@ An installation is configured in three places:
 
 What concerns one repository — its sandbox profile, its preflight limits, its skills — lives in that repository under `.factory/`. See [Add a repository](/docs/repositories).
 
-A file in the working directory replaces the one of the same name that ships with the factory. This holds for `configs/<name>.yaml` and for the prompt templates under `prompts/`. An installation without any of them runs on the shipped defaults.
+A file in the working directory replaces the one of the same name that ships with the factory. This holds for `configs/<name>.yaml`, for the prompt templates under `prompts/` and for `skills/<name>/v<N>.md`. An installation without any of them runs on the shipped defaults, which are in the repository under `defaults/`; `tiller.example.yaml` there is a `tiller.yaml` to start from.
 
 ## tiller.yaml
 

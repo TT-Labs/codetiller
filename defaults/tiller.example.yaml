@@ -1,17 +1,5 @@
-# codetiller working-dir config
-paths:
-  datasets: datasets
-  skills: skills
-  configs: configs
-  prompts: prompts
-  artifacts: artifacts
-  db: tiller.db
-env:
-  anthropic_api_key: ANTHROPIC_API_KEY
-  openai_api_key: OPENAI_API_KEY
-concurrency: 4
-defaults:
-  limits: { max_turns: 60, timeout_s: 1200, budget_usd: 5 }
+# codetiller working-dir config. Copy to tiller.yaml in the working dir; every key is optional,
+# and what is shown is the default unless a comment says otherwise.
 # USD per 1M tokens, per model id: what the model gateway counts a run's spend with. The built-in
 # list (packages/core/src/sandbox/prices.ts) covers the current Claude models; an entry here
 # replaces one or adds a model. A model without a price cannot run behind the gateway.
@@ -24,21 +12,21 @@ factory:
   # Per repository: `preflight:` in a project entry below, or `.factory/factory.yaml` in the repo
   # itself (`preflight: { max_files: 20 }`), which wins.
   preflight: { enabled: true, max_files: 10, max_concepts: 3, tolerance: 0.2 }
-  # factory skills (name@N from skills/) every task gets, before the repository's own
+  # factory skills (name@N from skills/, the working dir's or the ones tiller ships with) every task gets, before the repository's own
   # (.factory/skills/*.md at the task's base commit) and the config's. Empty until a skill has
   # passed the eval gate (`tiller gate`).
   skills: []
   # second reader: after a change passes verification a read-only agent reads it against the task
   # and reports what tests cannot say (code that works on the checks, things a maintainer would
   # not merge). Advisory: shown on the task and in the PR, never a gate. Runs on the task's model.
-  review: { enabled: true }
+  review: { enabled: false }
   # the repository's own CI on a task's pull request. fix: ask = a failure is shown and a human
   # sends it to the agent (button, `tiller task ci --fix`, `/tiller ci` on the PR); auto = the
   # factory sends it itself, at most max_attempts times per task; off = CI is not read.
   ci: { fix: ask, max_attempts: 2 }
   # models a human may choose in the UI (default model, or per task) in place of a config's own.
   # The gateway forwards only the model a run was started with and stops it at the config's
-  # budget_usd.
+  # budget_usd. Default: none.
   models: [claude-sonnet-5-5, claude-opus-5-5, claude-haiku-5-5]
   # Repositories are added with `tiller repo add <owner/name>`. An entry here is the older way,
   # for a repository whose sandbox profile lives in this working dir (datasets/<profile>/profile.yaml):

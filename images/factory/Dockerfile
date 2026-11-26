@@ -30,11 +30,10 @@ COPY --from=docker /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=docker /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
 COPY --from=build /opt/tiller /opt/tiller
 # what the CLI finds next to itself: the gateway and proxy scripts, the Dockerfile of the sandbox
-# base image (`tiller setup` builds it), the default prompts and agent configs
+# base image (`tiller setup` builds it), the default agent configs, prompts and skills
 COPY images/gateway /opt/tiller/images/gateway
 COPY images/base /opt/tiller/images/base
-COPY prompts /opt/tiller/prompts
-COPY configs/default.yaml configs/opus.yaml /opt/tiller/configs/
+COPY defaults /opt/tiller/defaults
 RUN chmod +x /opt/tiller/packages/cli/dist/cli.js \
   && ln -s /opt/tiller/packages/cli/dist/cli.js /usr/local/bin/tiller
 ENV NODE_ENV=production

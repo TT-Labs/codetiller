@@ -70,10 +70,8 @@ images/base       sandbox image: agent CLI, Node, Go, Python
 images/gateway    model gateway and registry proxy (plain Node, no dependencies)
 images/factory    the factory itself as an image
 deploy/           compose file and install script; deploy/kubernetes = manifests
-configs/          agent configs
-prompts/          prompt templates (hashed into a config)
-skills/           skills/<name>/v<N>.md, never edited in place
-tiller.yaml       working-dir config
+defaults/         what an installation starts with: agent configs, prompt templates, skills,
+                  and tiller.example.yaml to copy into a working dir
 site/             codetiller.ai: landing page and docs (Next.js, its own pnpm root)
 ```
 

@@ -8,3 +8,4 @@ tiller.db*
 .DS_Store
 .claude/worktrees/
 CLAUDE.local.md
+tiller.yaml

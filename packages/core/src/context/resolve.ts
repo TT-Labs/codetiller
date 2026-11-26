@@ -48,8 +48,8 @@ export function repoSkill(file: RepoSkillFile): ResolvedSkill {
  * later level replaces the earlier one: the level closer to the task knows better.
  */
 export async function resolveSkills(input: {
-  /** factory skills dir: `<name>/v<N>.md` */
-  skillsDir: string
+  /** factory skills dirs, the first that has `<name>/v<N>.md` wins */
+  skillsDir: string | string[]
   /** refs enabled for every task (tiller.yaml `factory.skills`) */
   builtin: string[]
   /** read from the trusted git dir at the task's base commit, never from the agent's workspace */
