@@ -33,7 +33,9 @@ The site (`site/`) is its own pnpm root: `cd site && pnpm install && pnpm dev`.
 
 - One change per pull request, with tests for the behaviour it changes.
 - `pnpm lint`, `pnpm typecheck` and `pnpm test` pass.
-- Contributions are accepted under the project's licence, Apache-2.0.
+- Your first pull request asks you to sign the [contributor licence agreement](CLA.md): a bot comments
+  with the sentence to post, once, and it covers your later pull requests. You keep the copyright; the
+  agreement lets the maintainer distribute your contribution, including under other licence terms.
 
 ## Security
 
