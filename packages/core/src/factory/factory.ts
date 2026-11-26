@@ -21,19 +21,18 @@ import { ensureDeps } from '../sandbox/deps.js'
 import {
   type GatewayUsage,
   type ModelAccess,
-  type ModelGateway,
   modelAccess,
   runAccounted,
 } from '../sandbox/gateway.js'
-import { type Prices, priceFor } from '../sandbox/prices.js'
-import type { Sandbox } from '../sandbox/sandbox.js'
+import { priceFor } from '../sandbox/prices.js'
 import { missingCommands } from '../transcript/missing.js'
 import { sha256 } from '../util/hash.js'
 import { runCheck, runTests } from '../verify/tests.js'
-import { diffStats, type GitWorkspaces, git } from '../workspace/git.js'
+import { diffStats, git } from '../workspace/git.js'
+import type { CreateWorkItem, FactoryDeps, Intake, ModelChoice, PrSync } from './deps.js'
 import { detectProfile } from './detect.js'
 import { feedbackMessage } from './feedback.js'
-import type { CiCheck, CiStatus, Forge, PrComment } from './forge.js'
+import type { CiStatus, PrComment } from './forge.js'
 import { forgeSafe } from './forge-text.js'
 import type { Preflight, PrSyncState, WorkItems } from './items.js'
 import {
@@ -43,6 +42,14 @@ import {
   readManifest,
   writeManifest,
 } from './manifest.js'
+import {
+  brokenMergeMessage,
+  checks,
+  ciMessage,
+  conflictMessage,
+  issueText,
+  prBody,
+} from './messages.js'
 import { type FactoryMetrics, factoryMetrics } from './metrics.js'
 import { CLOSABLE, parseSignal, QUEUEABLE, type WorkItem, type WorkRun } from './model.js'
 import {
@@ -71,7 +78,7 @@ import {
   renderReview,
   reviewVerdict,
 } from './review.js'
-import type { Project, Tracker } from './tracker.js'
+import type { Project } from './tracker.js'
 import {
   acceptChecks,
   acceptRemoved,
@@ -81,82 +88,6 @@ import {
   verifyCommit,
 } from './verify.js'
 
-export interface FactoryDeps {
-  items: WorkItems
-  sandbox: Sandbox
-  workspaces: GitWorkspaces
-  /** working dir holding datasets/, configs/, skills/, prompts/ */
-  root: string
-  /**
-   * What ships with the factory: `configs/`, `prompts/factory/` and `skills/` are read from here when the
-   * working dir has no file of that name, so an installation starts with an empty one and keeps
-   * only what it changed.
-   */
-  defaults?: string
-  /** model credentials; undefined = factory can't run agents. With a gateway they never enter an agent container */
-  env?: Record<string, string>
-  /** Agents reach the model through this and nothing else; without it they get `env` and the open network */
-  gateway?: ModelGateway
-  /** models a human may choose in place of a config's own (tiller.yaml `factory.models`) */
-  models?: string[]
-  /** model prices the gateway budgets with; default: the built-in list */
-  prices?: Prices
-  /** forge credentials stay here, on the host; undefined = no push / PR, human reviews locally */
-  forge?: Forge
-  /** intake: issues labelled for the factory in `projects` become IMPORTED work items */
-  tracker?: Tracker
-  projects?: Project[]
-  /** read-only assessment before a task's first run; undefined / disabled = runs start directly */
-  preflight?: PreflightLimits
-  /** factory skills (`name@N`) every task gets, before the repository's and the config's */
-  skills?: string[]
-  /** second reader: a read-only agent reads every change that passed verification (advisory) */
-  review?: { enabled: boolean }
-  /**
-   * When the repository's CI fails on a task's PR: `ask` (default) = shown, a human sends it to
-   * the agent; `auto` = the factory does, at most `max_attempts` times per task; `off` = not read.
-   */
-  ci?: { fix: 'ask' | 'auto' | 'off'; max_attempts: number }
-  maxConcurrent?: number
-  log?: (m: string) => void
-}
-
-/** Result of one intake pass: new items, plus per-project errors (a bad token, a missing repo). */
-export interface Intake {
-  created: WorkItem[]
-  errors: string[]
-}
-
-/** Result of one PR sync pass: item ids queued by a PR comment, closed with their PR, and errors. */
-export interface PrSync {
-  queued: string[]
-  closed: string[]
-  errors: string[]
-}
-
-export interface CreateWorkItem {
-  title: string
-  body: string
-  repo: string
-  dataset: string
-  config: string
-  /** git ref to branch from; default: remote default branch */
-  ref?: string
-  /** tracker the item came from (default: manual) */
-  source?: string
-  external_url?: string
-  /** run this task on this model instead of the default */
-  model?: string
-}
-
-/** Which model a task's next run uses and where that comes from. */
-export interface ModelChoice {
-  model: string
-  /** `task` = chosen for this task; `default` = the factory's default model; `config` = the task's config file */
-  source: 'task' | 'default' | 'config'
-}
-
-/** settings key: the model tasks run on unless one is chosen for the task */
 const DEFAULT_MODEL = 'default_model'
 const NAME = /^[a-z0-9][a-z0-9._-]{0,80}$/
 const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
@@ -2067,18 +1998,6 @@ export class Factory {
   }
 }
 
-/** Normalized task context for the agent: text only, never tracker credentials. */
-function issueText(item: WorkItem, messages: string[], questions: string[] = []): string {
-  // what the preflight asked, so the human's answers below make sense to the implementing agent
-  const asked = questions.length
-    ? `\n\n## Questions raised before the run\n\n${questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}`
-    : ''
-  const extra = messages.length
-    ? `\n\n## Additional instructions from the human\n\n${messages.join('\n\n')}`
-    : ''
-  return `# ${item.title}\n\n${item.body}${asked}${extra}`
-}
-
 const NO_PREFLIGHT = { report: null, run_id: null, cost_usd: null, turns: null, duration_s: null }
 
 /** A run's cost as the manifest records it: the figure, where it is from, and the agent's own. */
@@ -2095,66 +2014,8 @@ function costOf(agent: AgentResult, usage: GatewayUsage | undefined) {
   }
 }
 
-/** What the agent is told when the repository's CI failed on the commit it delivered. */
-function ciMessage(head: string, logs: { check: CiCheck; log: string | null }[]): string {
-  return [
-    `CI failed on the pull request for the commit you delivered (${head.slice(0, 7)}). The factory's own verification passed on it, so the failing checks run something verification does not (for example lint, a type check, a build). Failing checks: ${logs.map((l) => l.check.name).join(', ')}.`,
-    ...logs.map(({ check, log }) =>
-      log
-        ? `### ${check.name}: the end of its log\n\n\`\`\`\n${log.slice(-6000)}\n\`\`\``
-        : `### ${check.name}\n\nIts log is not available here${check.url ? ` (${check.url})` : ''}. Work out from the repository's CI configuration what this check runs.`,
-    ),
-    'Fix what the checks complain about. Run the same commands yourself where the sandbox allows it (it has no network), then finish as usual.',
-  ].join('\n\n')
-}
-
-/** What the agent is told when the factory's merge of the default branch left conflicts. */
-function conflictMessage(base: string, files: string[]): string {
-  return [
-    `The default branch moved while this task was open. The factory merged it (${base.slice(0, 8)}) into your branch and these files have conflicts:`,
-    files.map((f) => `- ${f}`).join('\n'),
-    'The files contain conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`). Resolve every one so that both your change and what the default branch changed keep working, then run the checks.',
-    'The git repository in /workspace is a scratch copy and does not show this merge: work on the files, do not use git to resolve it. Other files changed too, because the default branch moved; that is expected.',
-  ].join('\n\n')
-}
-
-/** What the agent is told when the default branch merged without conflicts but the tests now fail. */
-function brokenMergeMessage(base: string, verdict: string): string {
-  return [
-    `The default branch moved while this task was open. The factory merged it (${base.slice(0, 8)}) into your branch. There were no textual conflicts, but verification of the merged result fails:`,
-    verdict,
-    'Make your change work on top of the new default branch (the code around it changed), then run the checks. The git repository in /workspace is a scratch copy and does not show this merge.',
-  ].join('\n\n')
-}
-
 /** states in which a human may have the branch verified again: it exists and no run is in flight */
 const VERIFIABLE: readonly WorkItem['state'][] = ['REVIEW', 'PR_OPEN', 'FAILED']
 
 /** states from which a task's branch may be updated: it exists and no run is in flight */
 const UPDATABLE: readonly WorkItem['state'][] = ['WAITING_FOR_HUMAN', 'REVIEW', 'PR_OPEN', 'FAILED']
-
-/** The factory's checks as a PR section: the verification verdict and, if there is one, the second reader's word. */
-function checks(d: { note: string; reading?: string }): string {
-  // test names, paths and the reader's text all come from agents: neutralized like their other text
-  return [
-    `## Verification\n\n${forgeSafe(d.note)}`,
-    ...(d.reading ? [`## Second reader\n\n${forgeSafe(d.reading)}`] : []),
-  ].join('\n\n')
-}
-
-function prBody(item: WorkItem, summary: string, v: Verification, reading?: string): string {
-  return [
-    forgeSafe(summary) || '(agent gave no summary)',
-    checks({ note: verificationSummary(v), reading }),
-    // what the verdict is worth: the suite ran the agent's own code and tests
-    "Verification ran the repository's tests on this change in a sandbox, against the tests that passed before it. It says the tests still run and pass, not that the change is right: the diff is what you review.",
-    `Opened by codetiller for ${item.id}; merge is a human decision.${issueRef(item)}`,
-  ].join('\n\n')
-}
-
-/** `Closes #N` for an issue of the same repo (GitHub links and closes it on merge), else a link. */
-export function issueRef(item: Pick<WorkItem, 'repo' | 'external_url'>): string {
-  if (!item.external_url) return ''
-  const own = item.external_url.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/issues\/(\d+)$/)
-  return own && own[1] === item.repo ? `\n\nCloses #${own[2]}` : `\n\nTask: ${item.external_url}`
-}
