@@ -451,7 +451,9 @@ it('preflight stops an unclear task with its questions; no split to offer', asyn
   // the human's answer queues the write run; the task is not assessed twice
   expect(factory.enqueue(item.id, 'by date').state).toBe('QUEUED')
   expect(
-    (factory as unknown as { wantsPreflight(id: string): boolean }).wantsPreflight(item.id),
+    (factory as unknown as { base: { wantsPreflight(id: string): boolean } }).base.wantsPreflight(
+      item.id,
+    ),
   ).toBe(false)
 })
 
@@ -467,7 +469,7 @@ it('a human can queue without the assessment; a disabled preflight never runs', 
   const off = await preflightFactory('unused', { enabled: false })
   off.factory.enqueue(off.item.id)
   const wants = (f: Factory, id: string) =>
-    (f as unknown as { wantsPreflight(id: string): boolean }).wantsPreflight(id)
+    (f as unknown as { base: { wantsPreflight(id: string): boolean } }).base.wantsPreflight(id)
   expect(wants(off.factory, off.item.id)).toBe(false)
   expect(wants(skipped.factory, skipped.item.id)).toBe(false)
 })
@@ -491,7 +493,9 @@ it('a preflight that cannot answer keeps the gate closed; enqueueing again runs 
   )
   expect(factory.enqueue(item.id).state).toBe('QUEUED')
   expect(
-    (factory as unknown as { wantsPreflight(id: string): boolean }).wantsPreflight(item.id),
+    (factory as unknown as { base: { wantsPreflight(id: string): boolean } }).base.wantsPreflight(
+      item.id,
+    ),
   ).toBe(false)
 })
 
@@ -713,10 +717,10 @@ async function taskWithPr(answer = 'unused') {
     return g('rev-parse', 'HEAD')
   }
   const internals = factory as unknown as {
-    workspace(i: typeof item): Promise<{ ws: string; repo: TaskRepo }>
+    runs: { workspace(i: typeof item): Promise<{ ws: string; repo: TaskRepo }> }
     deps: { forge?: Forge }
   }
-  const { ws, repo } = await internals.workspace(item)
+  const { ws, repo } = await internals.runs.workspace(item)
   writeFileSync(join(ws, 'a.txt'), 'task version\n')
   await repo.commitAll('tiller: run 1')
   items.setPr(item.id, { number: 7, url: 'https://github.com/o/r/pull/7' })
@@ -973,7 +977,7 @@ it('a task only assessed so far starts its first run from the default branch as 
     `base moved to the current default branch: ${assessedAt?.slice(0, 8)} → ${head.slice(0, 8)}`,
   )
   // the fresh workspace is at the new base
-  const internals = factory as unknown as { repo(id: string): TaskRepo }
+  const internals = (factory as unknown as { base: { repo(id: string): TaskRepo } }).base
   expect(await internals.repo(part.id).head()).toBe(head)
 })
 
