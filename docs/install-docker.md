@@ -7,7 +7,7 @@ This installation puts the factory on one Linux machine. The factory itself runs
 
 ## Requirements
 
-- A Linux machine with Docker, `docker compose` v2 and git.
+- A Linux machine (x86_64 or arm64) with Docker and `docker compose` v2.
 - A machine of its own. The factory's container holds the Docker socket, which is equal to root on that host. See [What the machine is trusted with](#what-the-machine-is-trusted-with).
 - An Anthropic API key and a GitHub token, as described in the [quickstart](quickstart.md#before-you-start).
 - Disk for repositories, workspaces, dependency volumes and transcripts. `tiller doctor` warns under 10 GB free; the sandbox image alone is a few gigabytes.
@@ -15,9 +15,13 @@ This installation puts the factory on one Linux machine. The factory itself runs
 ## Install
 
 ```bash
-git clone https://github.com/TT-Labs/codetiller && cd codetiller
-deploy/install.sh
+mkdir tiller && cd tiller
+curl -fsSLO https://github.com/TT-Labs/codetiller/releases/latest/download/install.sh
+curl -fsSLO https://github.com/TT-Labs/codetiller/releases/latest/download/compose.yaml
+sh install.sh
 ```
+
+The two files are all there is to download: the factory and the sandbox come as published images. Keep the directory; the commands below are run in it.
 
 The script takes its settings from the environment:
 
@@ -27,19 +31,20 @@ The script takes its settings from the environment:
 | `TILLER_PORT` | `4317` | The port on the host. |
 | `TILLER_URL` | `http://127.0.0.1:<port>` | The address people open the UI at. |
 | `TILLER_BIND` | `127.0.0.1` | The address the port is published on. |
+| `TILLER_VERSION` | the release the script came with | The release to install, for example `0.1.0`. |
 
 For example:
 
 ```bash
-TILLER_HOME=/srv/tiller TILLER_URL=https://tiller.example.com deploy/install.sh
+TILLER_HOME=/srv/tiller TILLER_URL=https://tiller.example.com sh install.sh
 ```
 
 What the script does, in order:
 
-1. Builds the factory image from `images/factory`.
+1. Pulls the factory image `ghcr.io/tt-labs/codetiller-factory`.
 2. Creates the working directory, owned by uid 1000, with an empty `.env` (mode 600).
-3. Writes its settings to `deploy/.env` and starts the factory with `deploy/compose.yaml`.
-4. Runs `tiller setup` inside the container: builds the sandbox image and runs `tiller doctor`.
+3. Writes its settings to `.env` next to itself and starts the factory with `compose.yaml`.
+4. Runs `tiller setup` inside the container: pulls the sandbox image `ghcr.io/tt-labs/codetiller-base` of the same release (a few gigabytes) and runs `tiller doctor`.
 
 It does everything through the Docker daemon and installs nothing else on the machine. Running it again is safe: that is also how you [upgrade](#upgrade).
 
@@ -55,7 +60,7 @@ TILLER_GITHUB_TOKEN=...
 Then restart the factory so it reads them:
 
 ```bash
-docker compose -f deploy/compose.yaml restart
+docker compose restart
 ```
 
 Edit the file in place so it stays owned by uid 1000 with mode 600.
@@ -63,10 +68,10 @@ Edit the file in place so it stays owned by uid 1000 with mode 600.
 ## Check, onboard, open
 
 ```bash
-docker compose -f deploy/compose.yaml exec tiller tiller doctor
-docker compose -f deploy/compose.yaml exec tiller tiller audit
-docker compose -f deploy/compose.yaml exec tiller tiller repo add acme/shop
-docker compose -f deploy/compose.yaml logs tiller | grep 'tiller ui'
+docker compose exec tiller tiller doctor
+docker compose exec tiller tiller audit
+docker compose exec tiller tiller repo add acme/shop
+docker compose logs tiller | grep 'tiller ui'
 ```
 
 - `tiller doctor` must end with `ready`. Every failed check names its fix.
@@ -111,17 +116,32 @@ Back up this directory to back up the installation.
 
 ## Upgrade
 
+Download the script of the new release over the old one and run it, with the same settings as before:
+
 ```bash
-git pull
-deploy/install.sh
+curl -fsSLO https://github.com/TT-Labs/codetiller/releases/latest/download/install.sh
+curl -fsSLO https://github.com/TT-Labs/codetiller/releases/latest/download/compose.yaml
+sh install.sh
 ```
 
-Running the script again rebuilds the image and restarts the factory; runs in flight are recorded as failed and can be queued again. The database is migrated when the new factory opens it, after a copy is put next to it. Details and how to go back: [Operations](operations.md#upgrades-and-the-database).
+The script pulls the images of that release and restarts the factory; runs in flight are recorded as failed and can be queued again. The database is migrated when the new factory opens it, after a copy is put next to it. Details and how to go back: [Operations](operations.md#upgrades-and-the-database).
+
+Repositories onboarded without an image of their own move to the sandbox image of the new release with it. The images of the old release stay on the host until you remove them (`docker image prune -a`).
+
+## Build from source
+
+To run a checkout instead of a release, for example with your own changes:
+
+```bash
+git clone https://github.com/TT-Labs/codetiller && cd codetiller
+TILLER_BUILD=1 deploy/install.sh
+```
+
+This builds the factory image on the host, and `tiller setup` builds the sandbox image `codetiller/base:dev` from `images/base`. The compose commands then need `-f deploy/compose.yaml`.
 
 ## Limits
 
-- There are no published images. The script builds them on the host, which takes a few minutes.
 - Sign-in and roles do not exist; access is by the API token.
 - Backups are yours to do, apart from the copy made before a database migration.
-- Verified on an arm64 Linux host with a regular Docker daemon. x86_64 hosts, rootless Docker and SELinux-enforcing hosts have not been tried.
+- Images are published for x86_64 and arm64. Verified on an arm64 Linux host with a regular Docker daemon; rootless Docker and SELinux-enforcing hosts have not been tried.
 - One factory per working directory. Nothing stops a second one from being started on the same directory, and it must not be.

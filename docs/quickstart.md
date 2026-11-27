@@ -48,7 +48,7 @@ These stay with the factory. The agent never receives either of them: see [Trust
 pnpm tiller setup
 ```
 
-`setup` builds the sandbox image `codetiller/base:dev` from `images/base` when it is missing. The image holds Node (npm, pnpm, yarn, bun), Go, Python (venv, pip, uv) and the agent's command line tool, and is a few gigabytes. It then runs `tiller doctor`, which measures what a task needs: Docker answers, the image is there, a container sees a workspace where the factory put it, the credentials are set.
+From a clone, `setup` builds the sandbox image `codetiller/base:dev` from `images/base` when it is missing (a [server installation](install-docker.md) pulls a published one instead). The image holds Node (npm, pnpm, yarn, bun), Go, Python (venv, pip, uv) and the agent's command line tool, and is a few gigabytes. It then runs `tiller doctor`, which measures what a task needs: Docker answers, the image is there, a container sees a workspace where the factory put it, the credentials are set.
 
 ```text
 ok   docker         daemon 29.1.3 linux/amd64

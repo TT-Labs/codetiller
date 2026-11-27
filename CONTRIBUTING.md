@@ -39,6 +39,12 @@ The documentation is the Markdown in `docs/`; codetiller.ai renders it from ther
   with the sentence to post, once, and it covers your later pull requests. You keep the copyright; the
   agreement lets the maintainer distribute your contribution, including under other licence terms.
 
+## Releases
+
+A tag `vX.Y.Z` on `main` is a release: `.github/workflows/release.yml` publishes the images
+`ghcr.io/tt-labs/codetiller-factory` and `codetiller-base` (amd64 and arm64; tags `X.Y.Z`, `X.Y`, `latest`)
+and a GitHub release with `install.sh` and `compose.yaml`. Started by hand, the workflow only builds.
+
 ## Security
 
 Do not open a public issue for a vulnerability: see [SECURITY.md](SECURITY.md).

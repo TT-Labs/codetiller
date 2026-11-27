@@ -1,23 +1,20 @@
-# tiller on one Linux docker host. deploy/install.sh writes the variables below into deploy/.env
-# and starts this; see README "Installing on a server".
+# tiller on one Linux docker host. install.sh (next to this file) writes the variables below into
+# .env and starts this; see docs/install-docker.md.
 name: tiller
 services:
   tiller:
-    image: ${TILLER_IMAGE:-codetiller/factory:dev}
-    build:
-      context: ..
-      dockerfile: images/factory/Dockerfile
+    image: ${TILLER_IMAGE:?run install.sh}
     init: true
     restart: unless-stopped
     # uid of the sandbox containers; the group is the one that owns the docker socket on the host
     user: "1000:1000"
     group_add:
-      - "${DOCKER_GID:?run deploy/install.sh}"
+      - "${DOCKER_GID:?run install.sh}"
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     # The working dir has the same path here and on the host: workspaces are mounted into
     # sandbox containers by path, and it is the host's daemon that resolves it.
-    working_dir: ${TILLER_HOME:?run deploy/install.sh}
+    working_dir: ${TILLER_HOME:?run install.sh}
     volumes:
       - ${TILLER_HOME}:${TILLER_HOME}
       # the factory starts containers on the host. This is root on the host: only the factory

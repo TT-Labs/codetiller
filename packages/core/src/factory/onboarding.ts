@@ -49,7 +49,7 @@ export async function onboardRepo(
   if (profile && opts.check !== false) {
     if ((await sandbox.imageId?.(profile.image)) === null)
       throw new Error(
-        `sandbox image ${profile.image} is not on this host: build it first (docker build -t ${profile.image} images/base)`,
+        `sandbox image ${profile.image} is not on this host: \`tiller setup\` gets the factory's own, an image of the repository is built or pulled by hand`,
       )
     const ws = await workspaces.create(repo, head, `onboard-${repo.replace('/', '-')}`)
     const suites: SuiteCheck[] = []

@@ -1,6 +1,9 @@
 #!/bin/sh
-# Install or upgrade tiller on a Linux docker host: build the factory image, prepare its working
-# dir, start it, build the sandbox image, check the installation. Safe to run again.
+# Install or upgrade tiller on a Linux docker host: pull the factory image, prepare its working
+# dir, start it, pull the sandbox image, check the installation. Safe to run again. Needs only
+# compose.yaml next to it.
+#   TILLER_VERSION  release to install, e.g. 0.1.0 (default: the latest)
+#   TILLER_BUILD=1  build the images from this checkout instead of pulling them
 #   TILLER_HOME   working dir on the host (default /var/lib/tiller)
 #   TILLER_PORT   port on the host (default 4317)
 #   TILLER_URL    address people open the UI at (default http://127.0.0.1:$TILLER_PORT)
@@ -12,14 +15,21 @@ home=${TILLER_HOME:-/var/lib/tiller}
 port=${TILLER_PORT:-4317}
 url=${TILLER_URL:-http://127.0.0.1:$port}
 bind=${TILLER_BIND:-127.0.0.1}
-image=${TILLER_IMAGE:-codetiller/factory:dev}
+version=${TILLER_VERSION:-latest}
 
 case "$home" in /*) ;; *) echo "TILLER_HOME must be an absolute path: $home" >&2; exit 1 ;; esac
 docker version >/dev/null || { echo "docker does not answer" >&2; exit 1; }
 docker compose version >/dev/null || { echo "docker compose (v2) is needed" >&2; exit 1; }
 
-echo "== factory image ($image)"
-docker build -t "$image" -f "$here/../images/factory/Dockerfile" "$here/.."
+if [ "${TILLER_BUILD:-}" = 1 ]; then
+  image=${TILLER_IMAGE:-codetiller/factory:dev}
+  echo "== factory image ($image, built here)"
+  docker build -t "$image" -f "$here/../images/factory/Dockerfile" "$here/.."
+else
+  image=${TILLER_IMAGE:-ghcr.io/tt-labs/codetiller-factory:$version}
+  echo "== factory image ($image)"
+  docker pull "$image"
+fi
 
 # Everything on the docker host is done through the daemon, so this also works against a remote
 # one. The working dir belongs to uid 1000, the user of tiller and of every sandbox container.

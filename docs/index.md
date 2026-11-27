@@ -38,7 +38,6 @@ Only a human queues a run. Only a human merges. Importing an issue never starts 
 
 codetiller is early. The path from a task to a verified draft pull request works end to end on Docker and on Kubernetes, and each page of these docs ends with what is not built yet. The larger gaps today:
 
-- No published images: you build the factory image and the sandbox image from the repository.
 - Access to the UI is by one API token. Sign-in through GitHub and roles do not exist yet.
 - The factory talks to GitHub with a personal access token. A GitHub App is planned.
 - Tests that need a service (a database), private package registries and JVM projects are not covered.

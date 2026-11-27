@@ -27,3 +27,19 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+
+  # the factory image still builds: what it copies from the repository is listed by hand
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: images/factory/Dockerfile
+          load: true
+          tags: codetiller/factory:ci
+          cache-from: type=gha,scope=factory-ci
+          cache-to: type=gha,scope=factory-ci,mode=max
+      - run: docker run --rm codetiller/factory:ci --version

@@ -13,6 +13,7 @@ import {
   doctorOk,
   freeBytesOf,
   GitHubForge,
+  LOCAL_IMAGE,
   loadConfig,
   missingCommands,
   modelAccess,
@@ -189,7 +190,7 @@ export function register(program: Command) {
         },
         fix: 'kubectl apply -k deploy/kubernetes, and create the secret it names',
       },
-      imageFix: 'push it to a registry the cluster pulls from (TILLER_BASE_IMAGE names it)',
+      imageFix: 'the cluster must be able to pull it; TILLER_BASE_IMAGE names another one',
       sharedFix: `mount the claim ${k?.claim} at ${resolve('.')} in tiller's pod`,
     }
   }
@@ -240,26 +241,34 @@ export function register(program: Command) {
   program
     .command('setup')
     .description(
-      'prepare a docker host for tiller: build the sandbox base image when it is missing, then `tiller doctor`',
+      'prepare a docker host for tiller: pull the sandbox base image when it is missing (build it, from a checkout), then `tiller doctor`',
     )
-    .option('--rebuild', 'build the image even when there is one')
+    .option('--rebuild', 'build the image from images/base, even when there is one')
     .action(async (opts: { rebuild?: boolean }) => {
       if (ON_KUBERNETES)
         throw new Error(
-          `on Kubernetes the cluster pulls ${DEFAULT_IMAGE} from a registry: push it there (TILLER_BASE_IMAGE names it), then tiller doctor`,
+          `on Kubernetes the cluster pulls ${DEFAULT_IMAGE} itself (TILLER_BASE_IMAGE names another one): nothing to set up, run tiller doctor`,
         )
       const have = await new DockerSandbox().imageId(DEFAULT_IMAGE)
       if (have && !opts.rebuild) console.log(`${DEFAULT_IMAGE} is there (${have.slice(7, 19)})`)
       else {
-        console.log(`building ${DEFAULT_IMAGE} (Node, Go, Python and the agent CLI: a few GB)`)
-        const code = await new Promise<number | null>((done, fail) =>
-          spawn('docker', ['build', '-t', DEFAULT_IMAGE, resolve(ROOT, 'images', 'base')], {
-            stdio: 'inherit',
-          })
-            .on('error', fail)
-            .on('close', done),
+        // a released tiller names a published image; a checkout builds its own
+        const build = opts.rebuild || DEFAULT_IMAGE === LOCAL_IMAGE
+        const args = build
+          ? ['build', '-t', DEFAULT_IMAGE, resolve(ROOT, 'images', 'base')]
+          : ['pull', DEFAULT_IMAGE]
+        console.log(
+          `${build ? 'building' : 'pulling'} ${DEFAULT_IMAGE} (Node, Go, Python and the agent CLI: a few GB)`,
         )
-        if (code !== 0) throw new Error(`docker build failed (exit ${code})`)
+        const code = await new Promise<number | null>((done, fail) =>
+          spawn('docker', args, { stdio: 'inherit' }).on('error', fail).on('close', done),
+        )
+        if (code !== 0)
+          throw new Error(
+            build
+              ? `docker build failed (exit ${code})`
+              : `docker pull failed (exit ${code}): \`tiller setup --rebuild\` builds the image on this host instead`,
+          )
       }
       console.log('')
       const checks = await checkInstallation()

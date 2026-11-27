@@ -46,13 +46,18 @@ Not built yet:
 One Linux machine with docker and `docker compose` v2:
 
 ```bash
-git clone https://github.com/TT-Labs/codetiller && cd codetiller
-deploy/install.sh        # TILLER_HOME=/var/lib/tiller TILLER_PORT=4317 TILLER_URL=https://tiller.example.com
+mkdir tiller && cd tiller
+curl -fsSLO https://github.com/TT-Labs/codetiller/releases/latest/download/install.sh
+curl -fsSLO https://github.com/TT-Labs/codetiller/releases/latest/download/compose.yaml
+sh install.sh            # TILLER_HOME=/var/lib/tiller TILLER_PORT=4317 TILLER_URL=https://tiller.example.com
 # put ANTHROPIC_API_KEY and TILLER_GITHUB_TOKEN into $TILLER_HOME/.env, then:
-docker compose -f deploy/compose.yaml restart
-docker compose -f deploy/compose.yaml exec tiller tiller doctor
-docker compose -f deploy/compose.yaml exec tiller tiller repo add <owner/name>
+docker compose restart
+docker compose exec tiller tiller doctor
+docker compose exec tiller tiller repo add <owner/name>
 ```
+
+The script pulls the published images (`ghcr.io/tt-labs/codetiller-factory`, `codetiller-base`; amd64
+and arm64); nothing is built on the machine.
 
 The factory's container holds the docker socket, which is root on that host: give it a machine of its own.
 Details: [Docker](docs/install-docker.md),

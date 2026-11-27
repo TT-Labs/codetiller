@@ -11,6 +11,7 @@ import { priceFor } from '../sandbox/prices.js'
 import { sha256 } from '../util/hash.js'
 import { git } from '../workspace/git.js'
 import type { FactoryDeps, ModelChoice } from './deps.js'
+import { currentImage } from './detect.js'
 import type { WorkItems } from './items.js'
 import type { RunManifest } from './manifest.js'
 import type { WorkItem } from './model.js'
@@ -123,7 +124,11 @@ export class FactoryBase {
     const own = repoSandbox(file)
     if (own) return { profile: own, source: 'repository' }
     const onboarded = this.items.repo(repo)?.profile
-    if (onboarded) return { profile: onboarded, source: 'onboarding' }
+    if (onboarded)
+      return {
+        profile: { ...onboarded, image: currentImage(onboarded.image) },
+        source: 'onboarding',
+      }
     if (dataset) {
       const raw = await readFile(
         join(this.deps.root, 'datasets', dataset, 'profile.yaml'),

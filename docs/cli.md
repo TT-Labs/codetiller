@@ -43,7 +43,7 @@ Options of `tiller ui`:
 | Command | What it does |
 | --- | --- |
 | `tiller doctor` | Checks the installation: runtime, sandbox image, workspaces, credentials, repositories. Exit 1 when a check fails. See [Operations](operations.md#doctor). |
-| `tiller setup` | Docker hosts: builds the sandbox image when it is missing, then runs `doctor`. `--rebuild` builds it even when there is one. |
+| `tiller setup` | Docker hosts: gets the sandbox image when it is missing, then runs `doctor`. A release pulls the published image, a clone builds it. `--rebuild` builds it from `images/base` even when there is one. |
 | `tiller audit` | Probes the trust boundary inside the containers the factory starts, without a model call. Exit 1 on a failed probe. See [Operations](operations.md#audit). |
 | `tiller gateway stop` | Docker hosts: removes the model gateway and registry proxy containers. The next run starts fresh ones. |
 | `tiller tools` | Lists commands agents tried that the sandbox images lack, from run transcripts. |

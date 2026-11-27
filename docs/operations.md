@@ -37,7 +37,7 @@ warn repo acme/shop   readable, role allows a push; CI is not readable (403): th
 ready (1 warning)
 ```
 
-On a Docker host, `tiller setup` builds the sandbox image when it is missing and then runs `doctor`. `tiller setup --rebuild` builds it again, for example after an upgrade changed `images/base`.
+On a Docker host, `tiller setup` gets the sandbox image when it is missing and then runs `doctor`. A released factory pulls the image published with it; a clone builds `codetiller/base:dev` from `images/base`. `tiller setup --rebuild` builds the image on the host even when there is one, for example after you changed `images/base`.
 
 ## Audit
 

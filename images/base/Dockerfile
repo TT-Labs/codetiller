@@ -3,6 +3,7 @@
 # yarn, bun), Go and Python (venv, pip, uv). A repository that needs more extends it
 # (`.factory/Dockerfile`, or images/<repo> here).
 #   docker build -t codetiller/base:dev images/base
+# Released as ghcr.io/tt-labs/codetiller-base (.github/workflows/release.yml).
 FROM golang:1.27-bookworm AS go
 
 FROM node:24-bookworm-slim

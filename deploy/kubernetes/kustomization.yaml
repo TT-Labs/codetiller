@@ -1,5 +1,5 @@
 # tiller in one namespace of a cluster: kubectl apply -k deploy/kubernetes
-# See README "Installing on Kubernetes" for the secret it needs and what the cluster must provide.
+# See docs/install-kubernetes.md for the secret it needs and what the cluster must provide.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: tiller
@@ -11,8 +11,9 @@ resources:
   - gateway.yaml
   - registry.yaml
   - network.yaml
-# the factory image (images/factory) as your registry has it
+# The factory image. Set newTag to the release you install (e.g. "0.1.0"); newName only when
+# your cluster pulls from a registry of its own.
 images:
   - name: codetiller/factory
-    newName: codetiller/factory
-    newTag: dev
+    newName: ghcr.io/tt-labs/codetiller-factory
+    newTag: latest

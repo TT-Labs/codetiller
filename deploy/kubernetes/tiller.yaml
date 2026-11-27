@@ -39,9 +39,10 @@ spec:
               value: kubernetes
             - name: TILLER_CLAIM
               value: tiller-home
-            # the sandbox image as the cluster can pull it (images/base)
-            - name: TILLER_BASE_IMAGE
-              value: codetiller/base:dev
+            # The sandbox image is the one published with the factory image
+            # (ghcr.io/tt-labs/codetiller-base, same tag). From a registry of your own:
+            # - name: TILLER_BASE_IMAGE
+            #   value: registry.example.com/codetiller/base:0.1.0
             - name: TILLER_GATEWAY_URL
               value: http://tiller-gateway:8080
             - name: TILLER_REGISTRY_URL

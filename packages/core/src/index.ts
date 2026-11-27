@@ -51,7 +51,7 @@ export {
   taskNoise,
 } from './evals/report/noise.js'
 export { runTask } from './evals/run.js'
-export { DEFAULT_IMAGE } from './factory/detect.js'
+export { DEFAULT_IMAGE, LOCAL_IMAGE } from './factory/detect.js'
 export { Factory } from './factory/factory.js'
 export { GitHubForge } from './factory/forge.js'
 export {

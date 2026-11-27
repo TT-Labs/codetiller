@@ -109,7 +109,7 @@ Permissions the GitHub token needs, as a fine-grained personal access token limi
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `TILLER_SANDBOX` | unset (Docker) | `kubernetes`: sandboxes are pods of the cluster the factory runs in. Set by the manifests. |
-| `TILLER_BASE_IMAGE` | `codetiller/base:dev` | The sandbox image for repositories that name none. |
+| `TILLER_BASE_IMAGE` | `ghcr.io/tt-labs/codetiller-base:<release>`; from a clone `codetiller/base:dev` | The sandbox image for repositories that name none. |
 | `TILLER_CLAIM` | `tiller-home` | Kubernetes: the PersistentVolumeClaim of the working directory. |
 | `TILLER_GATEWAY_URL` | `http://tiller-gateway:8080` | Kubernetes: where the model gateway is. |
 | `TILLER_REGISTRY_URL` | `http://tiller-registry:8081` | Kubernetes: where the registry proxy is. |

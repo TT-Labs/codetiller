@@ -10,33 +10,33 @@ If you know the Docker installation, the [mapping table](#what-runs-in-the-names
 ## Requirements
 
 - A cluster whose network plugin **enforces NetworkPolicy**. Calico, Cilium and k3s do. Plain flannel does not, and the factory will refuse to run sandboxes there: see [Network isolation](#network-isolation).
-- A container registry the cluster can pull from. There are no published images; you build and push two.
+- A cluster that can pull from `ghcr.io`, or a registry of your own that holds a copy of the two images.
 - A storage class that can provide a `ReadWriteOnce` volume. The manifests ask for 50 Gi.
 - `kubectl` with rights to create a namespace, a Role and NetworkPolicies.
 - An Anthropic API key and a GitHub token, as described in the [quickstart](quickstart.md#before-you-start).
 
-## 1. Build and push the images
+## 1. Get the manifests
 
 ```bash
-git clone https://github.com/TT-Labs/codetiller && cd codetiller
-
-# the factory itself (also runs the model gateway and the registry proxy)
-docker build -t registry.example.com/codetiller/factory:1 -f images/factory/Dockerfile .
-docker push registry.example.com/codetiller/factory:1
-
-# the sandbox image every agent run and test run uses
-docker build -t registry.example.com/codetiller/base:1 images/base
-docker push registry.example.com/codetiller/base:1
+git clone --branch v0.1.0 https://github.com/TT-Labs/codetiller && cd codetiller
 ```
 
-## 2. Point the manifests at your images
+Use the tag of the [release](https://github.com/TT-Labs/codetiller/releases) you install.
 
-Two places name images:
+## 2. Choose the release and the address
 
-- `deploy/kubernetes/kustomization.yaml` → `images`: set `newName` and `newTag` to the factory image you pushed.
-- `deploy/kubernetes/tiller.yaml` → the environment variable `TILLER_BASE_IMAGE`: set it to the sandbox image you pushed.
+Two images are published with every release, for x86_64 and arm64:
 
-In the same `tiller.yaml`, the `--url` argument is the address people will open the UI at. Leave `http://127.0.0.1:4317` if you will use a port-forward; set your ingress address otherwise. The server answers only to the address it was told.
+| Image | What it is |
+| --- | --- |
+| `ghcr.io/tt-labs/codetiller-factory` | The factory itself. It also runs the model gateway and the registry proxy. |
+| `ghcr.io/tt-labs/codetiller-base` | The sandbox image every agent run and test run uses. |
+
+In `deploy/kubernetes/kustomization.yaml` → `images`, set `newTag` to the release, for example `"0.1.0"`. The factory uses the sandbox image with the same tag; nothing else names it.
+
+If the cluster cannot pull from `ghcr.io`, copy both images to your registry (or build them: `images/factory/Dockerfile` from the repository root, `images/base`). Then set `newName` in `kustomization.yaml` to your factory image, and the environment variable `TILLER_BASE_IMAGE` in `deploy/kubernetes/tiller.yaml` to your sandbox image.
+
+In `tiller.yaml`, the `--url` argument is the address people will open the UI at. Leave `http://127.0.0.1:4317` if you will use a port-forward; set your ingress address otherwise. The server answers only to the address it was told.
 
 ## 3. Create the namespace and the secret
 
@@ -119,7 +119,7 @@ Sandbox pods mount parts of the factory's claim. They are therefore scheduled on
 
 ## Upgrade
 
-Pull the repository, build and push new images, update the tag in `kustomization.yaml` (and `TILLER_BASE_IMAGE` if the sandbox image changed), and apply again. The database is migrated when the new factory opens it: see [Operations](operations.md#upgrades-and-the-database).
+Check out the tag of the new release, set `newTag` in `kustomization.yaml` to it (and `TILLER_BASE_IMAGE`, if you set one), and apply again. Repositories onboarded without an image of their own move to the new sandbox image. The database is migrated when the new factory opens it: see [Operations](operations.md#upgrades-and-the-database).
 
 The gateway and the registry proxy are Deployments of the factory image; restart them with `kubectl -n tiller rollout restart deploy/tiller-gateway deploy/tiller-registry`.
 

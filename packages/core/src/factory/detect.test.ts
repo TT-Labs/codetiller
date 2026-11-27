@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { detectProfile, type RepoFiles } from './detect.js'
+import { currentImage, DEFAULT_IMAGE, detectProfile, type RepoFiles } from './detect.js'
 
 const repo = (files: Record<string, string>): RepoFiles => ({
   paths: Object.keys(files),
@@ -135,5 +135,14 @@ it('says what it could not work out instead of guessing', async () => {
   expect(noLock.notes[0]).toMatch(/without a lockfile/)
   expect((await detectProfile(repo({ 'README.md': '' }))).notes.at(-1)).toMatch(
     /^nothing recognised/,
+  )
+})
+
+it('a profile that names a base image of tiller runs in the one of this tiller', () => {
+  expect(currentImage('codetiller/base:dev')).toBe(DEFAULT_IMAGE)
+  expect(currentImage('ghcr.io/tt-labs/codetiller-base:0.1.0')).toBe(DEFAULT_IMAGE)
+  // an image of the repository's own is left alone
+  expect(currentImage('registry.example.com/shop/sandbox:3')).toBe(
+    'registry.example.com/shop/sandbox:3',
   )
 })

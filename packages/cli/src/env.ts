@@ -32,11 +32,6 @@ import {
 } from '@codetiller/core'
 import { parse } from 'yaml'
 
-// secrets (ANTHROPIC_API_KEY) from gitignored .env; real env wins
-try {
-  process.loadEnvFile('.env')
-} catch {}
-
 /** Where tiller is installed (the checkout, or the image's install dir): `images/`, `defaults/`. */
 export const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 

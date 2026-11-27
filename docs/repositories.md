@@ -111,7 +111,7 @@ A report in JUnit XML is what most test runners can write, so a runner the detec
 `image` is optional. Without it the repository runs in the sandbox image of the factory, which has Node (npm, pnpm, yarn, bun), Go, Python (venv, pip, uv) and common tools. A repository that needs more — a system library, another runtime — can name its own image. Two conditions:
 
 - The image must already be on the host (or pullable by the cluster on Kubernetes). The factory does not build it.
-- It must contain the agent's command line tool. Derive it from `codetiller/base`.
+- It must contain the agent's command line tool. Derive it from `ghcr.io/tt-labs/codetiller-base`.
 
 `tiller tools` shows which commands agents tried and did not find, which tells you what an image is missing.
 

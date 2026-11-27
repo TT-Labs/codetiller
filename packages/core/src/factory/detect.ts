@@ -18,7 +18,23 @@ export interface Detection {
   notes: string[]
 }
 
-export const DEFAULT_IMAGE = process.env.TILLER_BASE_IMAGE || 'codetiller/base:dev'
+/** The sandbox base image as `images/base` builds it on this host. */
+export const LOCAL_IMAGE = 'codetiller/base:dev'
+const PUBLISHED_IMAGE = 'ghcr.io/tt-labs/codetiller-base'
+/**
+ * The sandbox image of repositories that name none: the one this release was published with
+ * (`TILLER_VERSION` is set in a released factory image), else the one built from the checkout.
+ */
+export const DEFAULT_IMAGE =
+  process.env.TILLER_BASE_IMAGE ||
+  (process.env.TILLER_VERSION ? `${PUBLISHED_IMAGE}:${process.env.TILLER_VERSION}` : LOCAL_IMAGE)
+
+/**
+ * A profile proposed at onboarding names the base image of the tiller that wrote it. After an
+ * upgrade the base image of this tiller is used; an image of the repository's own stays.
+ */
+export const currentImage = (image: string) =>
+  image === LOCAL_IMAGE || image.startsWith(`${PUBLISHED_IMAGE}:`) ? DEFAULT_IMAGE : image
 const MAX_DEPTH = 3
 /** nested dependency dirs beyond this are not worth a volume each: hoist, or list them by hand */
 const MAX_NESTED = 24
