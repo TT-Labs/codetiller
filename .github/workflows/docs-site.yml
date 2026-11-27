@@ -1,0 +1,21 @@
+name: Docs site
+
+# codetiller.ai renders docs/ at build time: a change here asks the site for a new build.
+# Does nothing until the secret SITE_DEPLOY_HOOK (the site host's deploy hook URL) is set.
+on:
+  push:
+    branches: [main]
+    paths: [docs/**]
+
+permissions: {}
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the site for a new build
+        env:
+          HOOK: ${{ secrets.SITE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "SITE_DEPLOY_HOOK is not set: nothing to do"; exit 0; fi
+          curl --fail --silent --show-error -X POST "$HOOK" > /dev/null
