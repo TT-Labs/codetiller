@@ -1,0 +1,87 @@
+---
+title: Skills
+description: Instructions the agent reads before it works — where they come from, in which order, and how a change to one is proven.
+---
+
+A **skill** is a markdown document with instructions for the agent: how this repository is built and tested, which conventions it follows, how to approach a kind of task. The factory puts the skills of a run into the context file the agent reads at the start (`CLAUDE.md` for Claude Code), inline, in a fixed order.
+
+## The levels
+
+Skills come from three places. They are rendered in this order, from the most general to the closest to the task:
+
+| Level | Where it lives | Who maintains it |
+| --- | --- | --- |
+| Factory | `skills/<name>/v<N>.md` in the factory's working directory, or one that ships with the factory, enabled for every task in `tiller.yaml` under `factory.skills` | Whoever runs the factory |
+| Repository | `.factory/skills/*.md` in the repository | The repository's maintainers |
+| Config | The `skills` list of the task's [agent config](configuration.md#agent-configs) | Whoever runs the factory |
+
+**A name repeated at a later level replaces the earlier one.** A repository skill named `testing` replaces a factory skill named `testing`: the level closer to the task knows better.
+
+> [!NOTE]
+> **Organization level: not built yet**
+>
+> A level between factory and repository — skills an organization shares across its repositories, kept in a git repository of its own — is planned and not built. Until then, shared instructions go into the factory level, or are copied into each repository.
+
+## Repository skills
+
+Put markdown files into `.factory/skills/` in the repository:
+
+```text
+.factory/
+  factory.yaml
+  skills/
+    architecture.md
+    testing.md
+```
+
+```markdown
+---
+name: testing
+---
+
+# Tests in this repository
+
+- Unit tests live next to the source as `*.test.ts` and run with `pnpm test`.
+- Integration tests under `e2e/` need the fixture server; do not add to them for unit-level changes.
+- Every bug fix comes with a test that fails without the fix.
+```
+
+The frontmatter is optional. Without a `name`, the file name is the skill's name. Files are rendered sorted by path.
+
+Repository skills are read **from git at the commit the task started from**, never from the workspace the agent writes to. An agent cannot rewrite its own instructions, and a change under `.factory/` made by a task is flagged in [verification](verification.md#changed-files-that-decide-the-checks) for a human to look at.
+
+They change the way all code in the repository changes: by pull request, reviewed by the people who own the repository.
+
+## Factory skills
+
+A factory skill is a versioned file, `skills/<name>/v<N>.md`, referred to as `<name>@<N>`. A version is never edited in place: a change is a new file, `v2.md`, so every past run still points at exactly what it read.
+
+Enable a factory skill for every task in `tiller.yaml`:
+
+```yaml
+factory:
+  skills: [repro-first@1]
+```
+
+The list ships empty, and it is meant to stay empty until a skill has passed the eval gate.
+
+## A skill is a hypothesis
+
+A skill costs context on every run, and a plausible-sounding instruction can make an agent worse as easily as better. The factory treats a factory-level skill as a claim to be tested:
+
+1. Write the skill as a new version.
+2. Make an agent config that includes it, next to a baseline config without it.
+3. Run both on a benchmark and compare them: `tiller benchmark`, then `tiller gate <baseline> <candidate>`.
+4. The gate prints a verdict — promote or keep — with every delta and the rerun noise, as markdown for the pull request that enables the skill.
+
+How the comparison works and what the promote rule is: [Evals](evals.md).
+
+## What a run records
+
+The manifest of every run lists each skill it carried with its level, its reference (`name@N` or the path in the repository), the hash of the text the agent actually read, and its size in tokens. Two runs that differ in outcome can be checked for whether they read the same instructions.
+
+## Limits
+
+- No organization level, as noted above.
+- Every skill of a run is rendered in full into the context. There is no selection by task and no loading on demand, so keep skills short.
+- A repository cannot switch off a factory skill, only replace it by name.

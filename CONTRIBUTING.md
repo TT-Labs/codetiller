@@ -14,7 +14,7 @@ pnpm typecheck
 pnpm lint          # Biome; `pnpm format` fixes what it can
 ```
 
-The site (`site/`) is its own pnpm root: `cd site && pnpm install && pnpm dev`.
+The documentation is the Markdown in `docs/`; codetiller.ai renders it from there.
 
 ## Rules of the codebase
 
@@ -27,7 +27,7 @@ The site (`site/`) is its own pnpm root: `cd site && pnpm install && pnpm dev`.
   package needs one.
 - `packages/core/src/store/schema.ts` is generated from `schema.sql`; a test fails when they differ.
 - The docs describe the product: a changed command, flag or limit changes its page in
-  `site/content/docs` in the same pull request.
+  `docs/` in the same pull request. A new page is also listed in `docs/nav.json`.
 - A change to a skill, a prompt or an agent config comes with a measured comparison (`tiller compare`,
   `tiller gate`).
 

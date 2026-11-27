@@ -4,14 +4,21 @@
     "includes": [
       "**",
       "!**/dist",
-      "!**/.next",
-      "!**/next-env.d.ts",
       "!**/artifacts",
       "!**/.cache",
       "!defaults",
+      "!docs",
       "!!**/.claude"
     ]
   },
-  "formatter": { "indentStyle": "space", "lineWidth": 100 },
-  "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "asNeeded" } }
+  "formatter": {
+    "indentStyle": "space",
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded"
+    }
+  }
 }

@@ -15,8 +15,8 @@ issue → preflight → queue → ephemeral container + persistent workspace →
   touched.
 - Every run is eval data, and a change to a skill or a config ships only with a measured comparison.
 
-Documentation: [`site/content/docs/en`](site/content/docs/en) (published at https://codetiller.ai/docs).
-Start with [quickstart](site/content/docs/en/quickstart.mdx) and [concepts](site/content/docs/en/concepts.mdx).
+Documentation: [`docs/`](docs/index.md), published at https://codetiller.ai/docs.
+Start with the [quickstart](docs/quickstart.md), the [concepts](docs/concepts.md) and the [FAQ](docs/faq.md).
 
 ## Status
 
@@ -55,9 +55,9 @@ docker compose -f deploy/compose.yaml exec tiller tiller repo add <owner/name>
 ```
 
 The factory's container holds the docker socket, which is root on that host: give it a machine of its own.
-Details: [Docker](site/content/docs/en/install-docker.mdx),
-[Kubernetes](site/content/docs/en/install-kubernetes.mdx),
-[trust boundary](site/content/docs/en/trust-boundary.mdx).
+Details: [Docker](docs/install-docker.md),
+[Kubernetes](docs/install-kubernetes.md),
+[trust boundary](docs/trust-boundary.md).
 
 ## Layout
 
@@ -72,7 +72,7 @@ images/factory    the factory itself as an image
 deploy/           compose file and install script; deploy/kubernetes = manifests
 defaults/         what an installation starts with: agent configs, prompt templates, skills,
                   and tiller.example.yaml to copy into a working dir
-site/             codetiller.ai: landing page and docs (Next.js, its own pnpm root)
+docs/             the documentation, plain Markdown (codetiller.ai renders it)
 ```
 
 Benchmark datasets and the evidence of past comparisons live in a separate repository,

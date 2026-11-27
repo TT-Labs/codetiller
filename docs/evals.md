@@ -1,0 +1,165 @@
+---
+title: Evals
+description: Benchmarks on real past changes of a repository, paired comparisons that account for rerun noise, and the gate a skill or config change must pass.
+---
+
+Changing how the factory works — a new skill, another model, different limits — changes results in ways that are hard to see from a handful of tasks. Agents are not deterministic: the same configuration run twice gives different results. The eval part of codetiller exists so that such a change is decided on evidence and not on the last run somebody watched.
+
+It is separate from the day-to-day factory. You can run tasks without ever running a benchmark.
+
+## The idea
+
+1. A **dataset** is a set of tasks cut from a repository's own history: an issue, the commit before its fix, and the tests the fix added. The agent gets the issue and the code before the fix. The added tests are hidden from it and decide the outcome.
+2. A **benchmark** runs one agent config over a dataset, several times.
+3. A **comparison** pairs two benchmarks task by task and says which differences are real.
+4. The **gate** turns a comparison into a verdict for a pull request: promote the candidate, or keep the baseline.
+
+## Datasets
+
+A dataset is a directory under `datasets/`:
+
+```text
+datasets/shop/
+  profile.yaml      # the sandbox profile: image, install, test command
+  tasks/*.yaml      # one file per task
+  split.yaml        # which tasks are train, which are holdout
+  labels.yaml       # optional: hand-curated labels
+```
+
+A task names the repository, the base commit, the fix commit, the issue text, the hidden test files, and the tests that must go from failing to passing:
+
+```yaml
+id: shop-412
+repo: acme/shop
+base_commit: 9a7ecc358b5b9bf9e2a682cf797ae4c14413e5a6
+fix_commit: c8f06d36fc1b56b99c8a12b2a3270394387cb507
+issue:
+  title: Discount is applied twice when the cart is reloaded
+  body: |
+    …
+hidden_tests:
+  - src/cart.test.ts
+fail_to_pass:
+  - src/cart.test.ts > applies a discount once
+pass_to_pass: suite
+```
+
+### Build a dataset from history
+
+```bash
+tiller dataset mine datasets/shop --repo acme/shop --since 2026-01-01
+tiller dataset infer datasets/shop
+tiller dataset validate datasets/shop
+tiller dataset split datasets/shop --holdout 0.4 --seed 1
+```
+
+- `mine` proposes task drafts from merged pull requests that close an issue and change tests.
+- `infer` turns drafts into tasks: it runs the hidden tests at the base and at the fix, derives which tests go from failing to passing, and keeps the tasks where that is stable.
+- `validate` is the oracle check per task: the hidden tests fail at the base and pass at the fix.
+- `split` writes a seeded split into train and holdout.
+
+The **holdout** split exists to keep you honest. Skills are written and tuned looking at train tasks; the holdout says whether the gain carries to tasks nobody looked at.
+
+### Labels
+
+Some tasks cannot be solved from their issue: the hidden tests assert something the issue never states. `labels.yaml` marks them as `underspecified`, with the reason. Comparisons then report all tasks and the remaining solvable ones.
+
+Labels are frozen before an experiment. They are never derived from the runs being compared, which would let the result choose its own tasks.
+
+`tiller dataset audit datasets/shop` prints, per task and from stored runs only, how often it was resolved and how close failed runs got. It makes no agent runs and is the evidence for curation.
+
+## Run a benchmark
+
+```bash
+tiller benchmark --dataset shop --config default --repeats 3
+```
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--dataset <name>` | | The dataset directory under `datasets/`. |
+| `--config <name>` | | The agent config. |
+| `--repeats <n>` | 1 | Runs per task. More than one is needed to estimate rerun noise. |
+| `--split <split>` | `all` | `train`, `holdout` or `all`. |
+| `--concurrency <n>` | 3 | Parallel runs. Each takes about 2 CPUs and 4 GB. |
+| `--budget <usd>` | 10 | No new run starts once this much is spent. |
+| `--name <name>` | | A name to refer to the benchmark by. |
+| `--only <ids>` | | Comma-separated task ids. |
+
+Each run: a fresh workspace at the base commit, the agent in its sandbox, then the hidden tests are put in and the suite runs in a fresh container. The agent never sees the hidden tests. `tiller run --task <id> --config <name> --dataset <name>` does one task once.
+
+> [!NOTE]
+> **Benchmarks cost money**
+>
+> A benchmark is tasks × repeats agent runs. `--budget` is a hard cap on starting runs; each run is also bounded by the `budget_usd` of its config. Use `tiller noise` first to see what a planned comparison would cost.
+
+## Compare two benchmarks
+
+```bash
+tiller compare default shop-onboarding
+tiller compare default shop-onboarding --split holdout
+```
+
+The arguments are benchmark names (the latest with that name) or ids. The comparison is paired per task: the same task under both configs.
+
+A delta is marked as real (`*`) only when both hold:
+
+- **It holds across tasks.** The bootstrap confidence interval of the per-task differences excludes zero.
+- **It exceeds rerun noise.** Rerun noise is what the same two configs give when they do not differ, estimated from the repeats of both sides, pooled per task.
+
+Next to success, the comparison reports per-run metrics: cost, duration, turns, the share of hidden tests fixed (`f2p_share`, a graded measure where success is all-or-nothing), regressions, tool errors, test runs, and commands the image lacked.
+
+## What can a comparison detect?
+
+```bash
+tiller noise --dataset shop
+tiller noise --dataset shop --metric f2p_share --delta 0.03
+```
+
+Before spending on a comparison, ask what it can show. `noise` reads the stored benchmarks of a dataset and reports its rerun noise for a metric, what difference a comparison can therefore detect, and how many runs — at what cost — it takes to detect the difference you plan for (`--delta`, in units of the metric: `0.05` is five percentage points).
+
+A small dataset with few repeats can only see large effects. It is better to know that before the runs than after.
+
+## The gate
+
+```bash
+tiller gate default shop-onboarding --out evidence.md
+```
+
+`gate` applies a fixed rule to a comparison and prints the verdict, its reason and every delta as markdown — the evidence that belongs in the pull request of a skill or config change. It exits with code 2 when the verdict is to keep the baseline.
+
+The candidate is promoted when one of these holds:
+
+- **The success gain is real**, by the two conditions above.
+- **There is no detectable loss of success, and it is cheaper or faster:** cost per success or duration per run drops by 15 % or more, and that drop holds.
+
+"No detectable loss" means the success delta is not below zero by more than rerun noise — and that noise itself is within ±10 percentage points. A comparison too noisy to see a large loss cannot vouch that there is none. The verdict states how large a loss the data could still hide.
+
+### A fixed reference
+
+```bash
+tiller gate shop-onboarding shop-learned --reference default
+```
+
+A chain of promotions, each "not detectably worse" than the one before, can add up to a loss none of them could see. `--reference` also holds the candidate against a fixed benchmark — the config from before any promotion.
+
+The rule the factory follows for itself: **skills change only through a pull request that carries this evidence.**
+
+## Learn from failures
+
+```bash
+tiller improve --benchmark default --dataset shop --skill shop-learned
+```
+
+`improve` reads the failed runs of a benchmark's train split, groups them into labelled clusters and proposes a learned skill from them. The proposal is a draft for a human to review. It then goes through the gate like any other skill.
+
+`tiller skill generate --dataset <name> --at <commit> --name <name>` has an agent write an onboarding skill from the repository at a commit older than every task of the dataset, so the skill cannot contain the fixes.
+
+## In the UI
+
+The dashboard shows benchmarks per dataset, the paired comparison with train, holdout and all tasks, rerun noise, per-run metrics and the tasks that flipped, and for each run the full conversation, the diff and the hidden-test log. The comparison page has "Copy evidence", the same markdown as `tiller gate` without the reference.
+
+## Limits
+
+- The benchmark commands were built and used on Docker. They were not run on Kubernetes.
+- Datasets are built from GitHub repositories whose pull requests close issues and change tests. A repository without that history gives few tasks.
+- Benchmarks on public repositories measure the agent on those repositories. Whether a result carries to yours is a question only a dataset from your own history answers.

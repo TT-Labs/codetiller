@@ -1,7 +1,7 @@
 # Security
 
 codetiller runs code written by an agent, so its trust boundary is the product. What the boundary
-is and how it is measured: [trust boundary](site/content/docs/en/trust-boundary.mdx).
+is and how it is measured: [trust boundary](docs/trust-boundary.md).
 
 ## Reporting a vulnerability
 

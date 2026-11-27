@@ -1,0 +1,49 @@
+[
+  {
+    "title": "Get started",
+    "pages": [
+      "index",
+      "quickstart",
+      "concepts",
+      "faq"
+    ]
+  },
+  {
+    "title": "Install",
+    "pages": [
+      "install-docker",
+      "install-kubernetes",
+      "operations"
+    ]
+  },
+  {
+    "title": "Use",
+    "pages": [
+      "repositories",
+      "tasks",
+      "pull-requests",
+      "skills",
+      "configuration"
+    ]
+  },
+  {
+    "title": "Trust",
+    "pages": [
+      "trust-boundary",
+      "verification"
+    ]
+  },
+  {
+    "title": "Evals",
+    "pages": [
+      "evals"
+    ]
+  },
+  {
+    "title": "Reference",
+    "pages": [
+      "cli",
+      "comparison"
+    ]
+  }
+]

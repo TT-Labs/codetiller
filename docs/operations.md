@@ -1,0 +1,129 @@
+---
+title: Operations
+description: Checking an installation, upgrading it, stopping it, and what to back up.
+---
+
+Commands on this page are written as `tiller …`. See [how commands are invoked](cli.md#how-to-invoke-tiller) for your installation.
+
+## Doctor
+
+```bash
+tiller doctor
+```
+
+`doctor` measures what an installation needs before its first task. It makes no model call and changes nothing outside a scratch directory. It exits with code 1 when a check fails.
+
+| Check | What is measured |
+| --- | --- |
+| `docker` or `kubernetes` | The runtime answers. On Kubernetes also: the service account may list pods, the model gateway answers. |
+| `git` | Git runs. |
+| `sandbox image` | The sandbox base image is on the Docker host. On Kubernetes the next check proves it instead. |
+| `workspaces` | A real sandbox is started on a scratch directory: it sees the file the factory wrote, can write its own, and the factory can read and remove what it wrote. |
+| `database` | The schema version the database is at. |
+| `disk` | Free space in the working directory. A warning under 10 GB. |
+| `model key` | `ANTHROPIC_API_KEY` is set. On Kubernetes the gateway holds it and the factory has none. |
+| `forge token` | `TILLER_GITHUB_TOKEN` is set. A warning without it: no private repositories, no pushes, no pull requests, no issue intake. |
+| `repo <owner/name>` | For each onboarded repository: the token reaches it, the token's role allows a push, and its CI is readable. |
+
+Each line is `ok`, `warn` or `FAIL`. A warning means the factory works with less; a failure means tasks cannot run. Lines that are not `ok` carry what to do about it:
+
+```text
+ok   docker           daemon 29.1.3 linux/amd64
+ok   sandbox image    codetiller/base:dev (3f9a1c2b7d10)
+ok   workspaces       /var/lib/tiller: the same files for tiller and a container, written by both
+warn repo acme/shop   readable, role allows a push; CI is not readable (403): the factory will not see failed checks on its pull requests
+                      → give the token Checks, Commit statuses and Actions: read
+
+ready (1 warning)
+```
+
+On a Docker host, `tiller setup` builds the sandbox image when it is missing and then runs `doctor`. `tiller setup --rebuild` builds it again, for example after an upgrade changed `images/base`.
+
+## Audit
+
+```bash
+tiller audit
+```
+
+`audit` measures the [trust boundary](trust-boundary.md) instead of assuming it. It starts the three kinds of sandbox exactly as the factory configures them — an agent container, a dependency-install container and a verification container — and runs probes inside each: is there a route to the internet, can the Docker socket or the cluster API be reached, is there a secret in the environment, does the gateway refuse what it should. It makes no model call. It exits with code 1 when a probe fails.
+
+```text
+agent container
+  ok    egress_https         000               no route to the internet
+  ok    model_api            200               model API reachable (HTTP 200)
+  ok    model_key            absent            agent holds no model key
+  ok    gateway_proxy        403               gateway refuses to proxy other hosts
+  …
+
+boundary holds for every probe
+```
+
+Run it on every new host and after changes to the host's networking. Docker networking differs between hosts, and on Kubernetes the result depends on the network plugin.
+
+| Option | Meaning |
+| --- | --- |
+| `--image <image>` | Probe this image instead of the sandbox base image. |
+| `--profile <name>` | Probe the image of a sandbox profile under `datasets/<name>`. |
+| `--config <name>` | The agent config the audited run is opened with. Default `default`. |
+| `--port <port>` | Where the factory's API listens. Default 4317. |
+
+## The UI link and its token
+
+The factory's API needs a token for every call, reads included: transcripts and diffs are your repository's code.
+
+`tiller ui` prints a link that carries the token once. The page keeps the token for its own origin and removes it from the address bar. The token lives in `.cache/ui-token` in the working directory, readable by the factory's user only and never mounted into a sandbox.
+
+To get the link again, read the factory's log:
+
+```bash
+docker compose -f deploy/compose.yaml logs tiller | grep 'tiller ui'     # Docker
+kubectl -n tiller logs deploy/tiller | grep 'tiller ui'                  # Kubernetes
+```
+
+To revoke the token, delete `.cache/ui-token` and restart the factory. A new one is generated and every old link stops working.
+
+The server answers only to the hosts it knows: `127.0.0.1:<port>`, `localhost:<port>`, and the address given with `--url`. A request for any other host is refused.
+
+## Upgrades and the database
+
+The database has a schema version. When a newer factory opens an older database it migrates it, and before changing anything it puts a copy next to it: `tiller.db.before-v<N>`, where N is the version being migrated to.
+
+A database written by a newer factory is refused by an older one, with a message that says so. To go back after an upgrade, stop the factory, restore the copy over `tiller.db`, and start the older version.
+
+How to upgrade each installation: [Docker](install-docker.md#upgrade), [Kubernetes](install-kubernetes.md#upgrade).
+
+## Stopping and crashes
+
+Stopping the factory (`docker compose stop`, deleting the pod, ctrl-c) ends the sandbox containers it started. A run that was in flight is recorded as failed, and its task can be queued again; nothing is lost but the work of that run.
+
+After a crash, where the factory had no chance to clean up, the next start removes whatever it left running. Sandboxes carry a label with the factory that owns them, which is how they are found.
+
+A restarted model gateway forgets the runs it had open and refuses their further calls. Those runs end as failed.
+
+On a Docker host, `tiller gateway stop` removes the model gateway and registry proxy containers; the next run starts fresh ones.
+
+## One worker at a time
+
+Runs are executed by one worker process: `tiller ui`, `tiller daemon` (the worker, issue intake and pull request sync without the UI) or `tiller task run` (the queue, in the foreground, until it is empty). Do not start two of them on one working directory.
+
+## What to back up
+
+Everything of an installation is in its working directory (on Kubernetes: the `tiller-home` claim):
+
+| Path | Loss means |
+| --- | --- |
+| `tiller.db` | Tasks, runs, benchmarks and settings are gone. |
+| `artifacts/` | Transcripts, diffs and manifests of past runs are gone. |
+| `.env` (Docker) or the Secret `tiller-secrets` (Kubernetes) | Credentials must be entered again. |
+| `tiller.yaml`, `configs/`, `prompts/` | Your changes to the defaults are gone. |
+| `.cache/` | Rebuilt on demand, except task workspaces: a task in progress loses uncommitted work of its agent. Work the factory committed is on the task branch, and after a verified run on GitHub. |
+
+## Sandbox images and missing tools
+
+`tiller tools` lists commands that agents tried to use and the sandbox images lack, collected from run transcripts. A run that hits one also gets a `sandbox image lacks: …` line in its task's timeline. Use it to decide what to add to an image.
+
+## Limits
+
+- Backups are not automated beyond the copy made before a migration.
+- There is no sign-in and there are no roles: one token, full access.
+- The database is SQLite in the working directory. One factory, one worker.
