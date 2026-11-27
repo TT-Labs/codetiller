@@ -43,3 +43,12 @@ jobs:
           cache-from: type=gha,scope=factory-ci
           cache-to: type=gha,scope=factory-ci,mode=max
       - run: docker run --rm codetiller/factory:ci --version
+      # the dashboard is in the image and the server finds it
+      - run: |
+          docker run -d --name tiller -w /tmp -p 4317:4317 codetiller/factory:ci
+          for i in $(seq 20); do
+            curl -fsS http://127.0.0.1:4317/ | grep -q 'assets/' && exit 0
+            sleep 1
+          done
+          docker logs tiller
+          exit 1

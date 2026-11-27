@@ -2,7 +2,6 @@ import { execFile, spawn } from 'node:child_process'
 import { readdir, readFile } from 'node:fs/promises'
 import { networkInterfaces } from 'node:os'
 import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import {
   auditSandbox,
@@ -62,10 +61,7 @@ export function register(program: Command) {
     .option('--api-only', 'serve the API only (web dev: pnpm --filter @codetiller/web dev)')
     .action(async (opts: { port: string; host: string; url?: string; apiOnly?: boolean }) => {
       const { store, factory, sandbox } = openFactory(console.log, { worker: true })
-      // packages/web/dist, from both src/ (tsx) and dist/ (built)
-      const webDir = opts.apiOnly
-        ? undefined
-        : fileURLToPath(new URL('../../web/dist', import.meta.url))
+      const webDir = opts.apiOnly ? undefined : resolve(ROOT, 'packages', 'web', 'dist')
       // worker executes only runs a human queued (no automatic spawn)
       const stopWorker = await runWorker(factory, sandbox)
       const token = uiToken()
